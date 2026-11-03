@@ -16,6 +16,7 @@ InputKind = Literal["mockup", "photo"]
 SamVariant = Literal["auto", "tiny", "small", "base_plus", "large"]
 DeviceName = Literal["auto", "cuda", "mps", "cpu"]
 VectorizeBackend = Literal["potrace", "cv2"]
+PrintOrder = Literal["cut_then_print", "print_then_cut"]
 
 VALID_KERF_MODES: tuple[str, ...] = ("app", "lightburn")
 VALID_INPUT_KINDS: tuple[str, ...] = ("mockup", "photo")
@@ -37,6 +38,18 @@ class Config:
     # PROVISIONAL (specification, 17): edge refinement band for real photos.
     refine_edge_photo: bool = True
     refine_edge_band_px: int = 8
+    # Phase 1: slots, decor and print (specification, 9.3 and 9.4).
+    print_order: PrintOrder = "cut_then_print"
+    slot_photo_min_dpi: float = 150.0
+    decor_ink_color: str = "#000000"
+    # PROVISIONAL (specification, 9.4, 17): registration marks and slot checks.
+    registration_mark_size_mm: float = 5.0
+    registration_mark_offset_mm: float = 5.0
+    registration_mark_circle_radius_mm: float = 1.0
+    slot_solidity_min: float = 0.5
+    slot_overlap_max: float = 0.1
+    slot_min_area_mm2: float = 50.0
+    decor_upsample: int = 2
     potrace_turdsize: int = 20
     potrace_alphamax: float = 1.0
     potrace_opttolerance: float = 0.2
@@ -75,6 +88,14 @@ class Config:
             raise ValueError("max_side_px must be at least 64")
         if self.print_dpi <= 0:
             raise ValueError("print_dpi must be positive")
+        if self.print_order not in ("cut_then_print", "print_then_cut"):
+            raise ValueError(f"unknown print_order {self.print_order!r}")
+        if self.slot_solidity_min <= 0 or self.slot_solidity_min > 1:
+            raise ValueError("slot_solidity_min must be in (0, 1]")
+        if not 0 <= self.slot_overlap_max <= 1:
+            raise ValueError("slot_overlap_max must be in [0, 1]")
+        if self.slot_min_area_mm2 <= 0:
+            raise ValueError("slot_min_area_mm2 must be positive")
         for kind in VALID_INPUT_KINDS:
             if kind not in self.edge_inset_mm:
                 raise ValueError(f"edge_inset_mm is missing the {kind!r} entry")
