@@ -306,6 +306,8 @@ class Canvas(QGraphicsView):
     def load_prompt(self, prompt) -> None:
         """Replace the current prompt with a saved one (project open)."""
         self.clear_prompt()
+        if prompt is None:
+            return
         for point, label in zip(prompt.points, prompt.labels, strict=False):
             self.add_prompt_point(int(label), (float(point[0]), float(point[1])))
         if prompt.box is not None:
@@ -315,7 +317,7 @@ class Canvas(QGraphicsView):
         """Replace the manual polygon with a saved one (project open)."""
         self.polygon_tool.reset()
         for point in points:
-            self.add_polygon_vertex((float(point[0]), float(point[1])))
+            self.polygon_tool.add_point((float(point[0]), float(point[1])))
         self._redraw_polygon()
 
     def clear_prompt(self) -> None:

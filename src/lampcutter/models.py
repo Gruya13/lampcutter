@@ -42,6 +42,20 @@ class Prompt:
     def is_empty(self) -> bool:
         return not self.points and self.box is None
 
+    @property
+    def positive(self) -> tuple[tuple[int, int], ...]:
+        """Points with label 1 (foreground)."""
+        return tuple(
+            point for point, label in zip(self.points, self.labels, strict=False) if label == 1
+        )
+
+    @property
+    def negative(self) -> tuple[tuple[int, int], ...]:
+        """Points with label 0 (background)."""
+        return tuple(
+            point for point, label in zip(self.points, self.labels, strict=False) if label == 0
+        )
+
 
 @dataclass
 class SegmentationResult:

@@ -15,6 +15,12 @@ maska (`--mask-file`, SAM 2 tačka/okvir ili ručni poligon), čišćenje maske,
 skala u mm, vektorizacija, edge inset, kerf kompenzacija, SVG za LightBurn i
 debug izlazi.
 
+**Faza 3 (završena):** projekti `.lampproj` (putanja slike, prompt/poligon,
+veličina, profili, kerf — reprodukuju isti izlaz), uređivači profila materijala i
+postolja sa upisom u korisnički folder (izmena kerfa važi za sledeći izvoz),
+čuvanje/otvaranje `.lamptpl` šablona kroz UI, dodavanje slotova/dekora iz
+poligona i izmena režima, i18n hook (`QTranslator`). Test set Faze 3: 41 test.
+
 **Faza 2 (završena):** GUI kostur u PySide6 — `QGraphicsView` platno (slika,
 maska, kontura, slotovi, dekor), zum točkićem i pan srednjim tasterom, interaktivni
 prompt (levi klik pozitivna, desni negativna tačka, prevlačenje okvir), poligon
@@ -33,8 +39,8 @@ početak. Test set Faze 1: 42 testa.
 **Faza 0b (završena):** jezičak i prorez baze (spec 8.3) sa zazorom i
 upozorenjima, kalibracija kerfa (`lampcutter calibrate`), `PipelineCache` (faze
 S1–S6), `refine_edge` za stvarne fotografije i benchmark (CPU + CUDA; Mac MPS se
-čeka). Zaključani test setovi: Faza 0a 38, Faza 0b 37, Faza 1 42, Faza 2 37 —
-ukupno 154 testa, svi prolaze. Fizička provera (LightBurn uvoz, probni rez, naleganje jezička) je na
+čeka). Zaključani test setovi: Faza 0a 38, Faza 0b 37, Faza 1 42, Faza 2 37,
+Faza 3 41 — ukupno 195 testova, svi prolaze. Fizička provera (LightBurn uvoz, probni rez, naleganje jezička) je na
 korisniku kad bude imao vremena.
 
 **Faza E (odložena):** čeka 2–3 stvarne fotografije upaljene lampe i 2–3 mockupa
@@ -54,6 +60,7 @@ uv run python scripts/run_cases.py tests/cases/phase0a.json   # test set 0a
 uv run python scripts/run_cases.py tests/cases/phase0b.json   # test set 0b
 uv run python scripts/run_cases.py tests/cases/phase1.json    # test set 1
 QT_QPA_PLATFORM=offscreen uv run python scripts/run_cases.py tests/cases/phase2.json  # test set 2 (GUI)
+uv run python scripts/run_cases.py tests/cases/phase3.json    # test set 3
 ```
 
 Ciljna Python verzija je 3.12 (zbog PyTorch/SAM 2).
@@ -81,8 +88,9 @@ uv pip install PySide6==6.12.0               # GUI zavisnost (nije u locku)
 uv run --no-sync lampcutter gui [slika.png]   # tamna tema (--theme light za svetlu)
 ```
 
-GUI je kostur Faze 2: platno sa interaktivnim promptom i poligonom, paneli i
-pozadinski izvoz. Uređivači profila, projekti i četkica su Faze 3.
+GUI: platno sa interaktivnim promptom i poligonom, paneli, pozadinski izvoz,
+uređivači profila, čuvanje/otvaranje projekata (`.lampproj`) i šablona
+(`.lamptpl`), dodavanje slotova/dekora iz poligona. Ručna četkica je v1.1.
 
 ## Verifikacija (za Dalibora i agente)
 

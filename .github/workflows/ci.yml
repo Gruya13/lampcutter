@@ -27,7 +27,7 @@ jobs:
           uv run --no-sync ruff format --check src scripts
       - name: Zaključani test setovi (mreža blokirana)
         run: |
-          for suite in phase0a phase0b phase1 phase2; do
+          for suite in phase0a phase0b phase1 phase2 phase3; do
             uv run --no-sync python scripts/run_cases.py "tests/cases/$suite.json" \
                 -- --disable-socket --allow-unix-socket
           done

@@ -34,6 +34,24 @@ Format: Keep a Changelog. Faze iz `LAMPCUTTER_SPEC.md` (odeljak 16).
   `scripts/run_cases.py` i API ugovor `docs/api-phase0a.md`.
 - GitHub: privatni repo kao `main`; lokalni repo je staging.
 
+### Dodato — Faza 3
+
+- `core/project.py`: `.lampproj` projekti — putanja slike (relativna u folderu
+  projekta), prompt ili ručni poligon, veličina/referenca, material_id/base_id,
+  kerf/input_kind, putanja šablona; `save_project`/`load_project`, validacija
+  šeme; maska se ne čuva (osim ručnog poligona).
+- `ui/dialogs.py`: uređivači profila materijala (kerf, debljina, min detalj,
+  napomene) i postolja (prorez, jezičak, zazor, radijus).
+- `ui/i18n.py` + `resources/translations/`: `QTranslator` hook; srpski je
+  izvorni, `.qm` fajlovi za druge jezike se dodaju bez promene koda.
+- `ui.main_window.py`: čuvanje/otvaranje projekata i šablona, uređivači profila
+  sa upisom u korisnički folder, dodavanje slotova/dekora iz poligona, izmena
+  režima elementa, `.lamptpl` učitavanje u platno.
+- `Prompt.positive`/`Prompt.negative`; `Canvas.load_prompt`/`load_polygon`;
+  `SizePanel.set_reference`, `MaterialPanel.select_material`,
+  `BasePanel.select_base`/`set_values`, `ContourPanel.set_values`.
+- Zaključan test set Faze 3 (41 test, autor agy); ukupno 195 testova.
+
 ### Dodato — Faza 2
 
 - `ui/tools.py` (Qt-free): `ViewTransform` (zum/pan matematički, `zoom_at` čuva

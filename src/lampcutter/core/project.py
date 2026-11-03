@@ -71,11 +71,11 @@ def _path_to_json(path: Path | None, base_dir: Path) -> str | None:
         return None
     path = Path(path)
     if not path.is_absolute():
-        return str(path)
+        path = (Path.cwd() / path).resolve()
     try:
         return str(path.resolve().relative_to(base_dir.resolve()))
     except ValueError:
-        return str(path)
+        return str(path.resolve())
 
 
 def _path_from_json(value: str | None, base_dir: Path) -> Path | None:

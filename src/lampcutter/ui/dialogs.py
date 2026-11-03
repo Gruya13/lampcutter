@@ -9,7 +9,6 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QFormLayout,
     QLineEdit,
-    QPlainTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -55,8 +54,7 @@ class MaterialEditorDialog(QDialog):
         self.thickness_spin = _spin(0.5, 50.0, material.thickness_mm)
         self.kerf_spin = _spin(0.0, 2.0, material.kerf_mm, decimals=3)
         self.min_feature_spin = _spin(0.1, 20.0, material.min_feature_mm)
-        self.notes_edit = QPlainTextEdit(material.notes)
-        self.notes_edit.setMaximumHeight(80)
+        self.notes_edit = QLineEdit(material.notes)
         form = QFormLayout()
         form.addRow("ID:", self.id_edit)
         form.addRow("Naziv:", self.name_edit)
@@ -75,7 +73,7 @@ class MaterialEditorDialog(QDialog):
             thickness_mm=self.thickness_spin.value(),
             kerf_mm=self.kerf_spin.value(),
             min_feature_mm=self.min_feature_spin.value(),
-            notes=self.notes_edit.toPlainText().strip(),
+            notes=self.notes_edit.text().strip(),
         )
 
 
