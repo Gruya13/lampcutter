@@ -194,6 +194,34 @@ Dobijaš: `lamp_cut.svg` (cut crveno + gravura plavo), `print_sheet.png`,
 **Dostaviti:** `proba/1a/` (svg, manifest, print sheet), tabelu, fotografije
 gravure i štampe, rezultat uvoza u LightBurn (screenshot je dovoljan).
 
+### 3.4 Faza 4 — preuzmi release paket i pokreni ga
+
+**Cilj:** potvrditi da samostalni paket radi na tvojoj mašini (spec 16, Faza 4).
+
+1. Sa GitHub Releases preuzmi arhivu za svoj sistem:
+   `lampcutter-0.4.0-linux-x86_64.zip`, `lampcutter-0.4.0-macos-arm64.zip`
+   ili `lampcutter-0.4.0-windows-x86_64.zip`.
+2. Raspakuj i pokreni:
+   ```bash
+   ./lampcutter/lampcutter --version     # treba "lampcutter 0.4.0"
+   ./lampcutter/lampcutter --help        # komande: run, calibrate, export, gui, benchmark
+   ./lampcutter/lampcutter calibrate --sizes 20 --out proba/release   # SVG
+   ./lampcutter/lampcutter gui           # prozor se otvara
+   ```
+3. **Proveri:** GUI se otvara bez greške; `--version` je 0.4.0; `calibrate`
+   napravi SVG; (lite paket nema SAM 2 — za segmentaciju iz slike koristi
+   razvojno okruženje sa ML stackom).
+4. macOS: ako Gatekeeper blokira — `xattr -dr com.apple.quarantine ~/lampcutter`.
+5. Prijavi: OS + arhitektura, da li se GUI otvorio, eventualna greška (tačan
+   izlaz komande).
+
+| provera | rezultat |
+|---|---|
+| OS / arhitektura | |
+| `--version` | |
+| GUI se otvorio | da / ne |
+| greške (ako ih ima) | |
+
 ## 4. Faza E — ulazni materijal za eksperiment segmentacije
 
 Potrebno je **2–3 stvarne fotografije upaljene lampe** (ne mockup) i
@@ -261,6 +289,7 @@ meni.
 - [ ] Faza 1: print sheet odštampan 1:1; registracione oznake izmerene
 - [ ] Faza 1: poravnanje štampe i reza u toleranciji
 - [ ] Faza E: fotografije/mockupi sa visinama dostavljeni (ili dogovoren rok)
+- [ ] Faza 4: release paket preuzet, `--version` i GUI rade
 - [ ] Nalazi dokumentovani (PR/issue) i poslati DSH-u za obradu
 
 ## 8. Napomene

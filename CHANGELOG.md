@@ -34,6 +34,21 @@ Format: Keep a Changelog. Faze iz `LAMPCUTTER_SPEC.md` (odeljak 16).
   `scripts/run_cases.py` i API ugovor `docs/api-phase0a.md`.
 - GitHub: privatni repo kao `main`; lokalni repo je staging.
 
+### Dodato — Faza 4
+
+- Verzija `0.4.0`: `__version__`, `pyproject.toml`, `lampcutter --version` i
+  `python -m lampcutter --version`.
+- `scripts/build.py`: PyInstaller paket (onedir/onefile, `--archive` zip,
+  `--dry-run`); CLI + GUI, prevodi, verzija iz pyproject-a.
+- `.github/workflows/release.yml`: na tag `v*` gradi pakete za Linux, macOS i
+  Windows i kači ih na GitHub Release; `fetch-depth: 0` u checkout-u.
+- `docs/INSTALACIJA.md`: preuzimanje, Gatekeeper, Linux biblioteke, ML stack,
+  iz izvora, build, rešavanje problema.
+- CI: `fetch-depth: 0` (lock proverava git revizije), `uv sync --group dev
+  --extra gui`, šest zaključanih test setova; PySide6/pytest-qt/pyinstaller/
+  pyyaml u locku.
+- Zaključan test set Faze 4 (30 testova, autor agy); ukupno 225 testova.
+
 ### Dodato — Faza 3
 
 - `core/project.py`: `.lampproj` projekti — putanja slike (relativna u folderu
