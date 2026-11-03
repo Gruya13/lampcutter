@@ -187,6 +187,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="redosled sečenja i štampe",
     )
 
+    gui_parser = subparsers.add_parser("gui", help="pokreni grafički interfejs (zahteva PySide6)")
+    gui_parser.add_argument(
+        "image", type=Path, nargs="?", default=None, help="slika koja se odmah učitava"
+    )
+    gui_parser.add_argument("--theme", choices=["dark", "light"], default="dark", help="tema")
+    gui_parser.add_argument(
+        "--device", choices=["auto", "cuda", "mps", "cpu"], default=None, help="uređaj za SAM 2"
+    )
+    gui_parser.add_argument(
+        "--sam-variant",
+        choices=["auto", "tiny", "small", "base_plus", "large"],
+        default=None,
+        help="SAM 2 varijanta modela",
+    )
+
     benchmark_parser = subparsers.add_parser(
         "benchmark", help="SAM 2 benchmark (specifikacija, 11.2); prosleđuje argumente skripti"
     )
@@ -346,6 +361,20 @@ def _export_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def _gui_command(args: argparse.Namespace) -> int:
+    try:
+        from lampcutter.ui.app import run_gui
+    except ImportError as error:
+        raise PipelineError(
+            "GUI zahteva PySide6: uv pip install PySide6==6.12.0 "
+            f"(ili uv sync --extra gui). Detalj: {error}"
+        ) from error
+    return run_gui(
+        dark=args.theme == "dark",
+        initial_image=str(args.image) if args.image is not None else None,
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     """Entry point for the `lampcutter` console script."""
     parser = build_parser()
@@ -357,6 +386,8 @@ def main(argv: list[str] | None = None) -> int:
             return _calibrate_command(args)
         if args.command == "export":
             return _export_command(args)
+        if args.command == "gui":
+            return _gui_command(args)
         if args.command == "benchmark":
             return _benchmark_command(args)
         raise PipelineError(f"Nepoznata komanda {args.command!r}")
