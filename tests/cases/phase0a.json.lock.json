@@ -1,12 +1,12 @@
 {
   "version": 1,
   "casesFile": "phase0a.json",
-  "casesSha256": "a78398fffc028141846382f84830a3a25338d31ac92067953759530b32159bcc",
+  "casesSha256": "203cce619e5f654e6609a0bf0aabeeebee23a33927c1217e1c488f46748f1100",
   "cases": 38,
   "entry": "test_phase0a_spec.py",
   "gitRel": "tests/cases/phase0a.json",
   "gitState": "clean",
-  "gitRevision": "0e48bbc2e757c5e9bb7487fae2f388ab6ad51900",
+  "gitRevision": "fe9aef3d60cef7d1929f97ee95149cfe250dac4a",
   "lockedAt": "2026-11-03T08:13:31.311Z",
   "lockedBy": "agy",
   "relocks": [
@@ -16,6 +16,13 @@
       "reason": "tri testa ispravljena posle nalaza iz izvrsavanja: shapely.ops import, centar kruga po bbox konvenciji, edge_inset u pipeline testu; wiki revizija d5fe05f",
       "from": "825e4adf06b2574cc601ae7126c2332984b2f48a998de72b65a1d8437b73137e",
       "to": "a78398fffc028141846382f84830a3a25338d31ac92067953759530b32159bcc"
+    },
+    {
+      "at": "2026-11-03T09:31:35.126Z",
+      "by": "agy",
+      "reason": "test_segmentation_predict_rules_and_offline je sada okruzenjski nezavisan (monkeypatch loader-a); SAM 2 je instaliran na masini pa stara verzija zavisi od okruzenja",
+      "from": "a78398fffc028141846382f84830a3a25338d31ac92067953759530b32159bcc",
+      "to": "203cce619e5f654e6609a0bf0aabeeebee23a33927c1217e1c488f46748f1100"
     }
   ]
 }
