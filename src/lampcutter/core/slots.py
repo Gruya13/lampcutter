@@ -244,7 +244,7 @@ def validate_slot_mask(
         )
     if existing_slots:
         new_area = max(area_mm2, 1e-9)
-        candidate = _mask_to_polygon(binary)
+        candidate = _mask_to_polygon(binary, mm_per_px)
         if candidate is not None:
             for index, existing in enumerate(existing_slots):
                 # Accept either bare shapely polygons or PhotoSlot objects.
