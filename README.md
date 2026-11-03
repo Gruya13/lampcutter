@@ -125,6 +125,21 @@ uv run python scripts/build.py --archive   # dist/lampcutter-<verzija>-<platform
 Na tag `v*` se automatski prave paketi za Linux, macOS i Windows i kače na
 GitHub Release. Uputstvo za korisnike: [docs/INSTALACIJA.md](docs/INSTALACIJA.md).
 
+## Preostalo za dalji razvoj
+
+Razvojni plan iz specifikacije je završen osim **Faze E**; za nju i za
+finalno izdanje čekamo materijal od collaboratora (Dalibor):
+
+| # | Šta dostaviti | Ko | Zašto | Detalji |
+|---|---|---|---|---|
+| 1 | **2–3 fotografije upaljene lampe** (frontalno, >1500 px, stvarna visina u mm) | Dalibor | ulaz za Fazu E — kalibracija segmentacije na stvarnim slikama | [VERIFIKACIJA §4](docs/VERIFIKACIJA.md) |
+| 2 | **2–3 mockupa sa poznatim stvarnim visinama** (mm) | Dalibor | Faza E — poređenje sa stvarnim fotografijama | [VERIFIKACIJA §4](docs/VERIFIKACIJA.md) |
+| 3 | **Tabele fizičkih provera**: LightBurn dimenzije, kerf, jezičak, gravura, poravnanje štampe (+ fotografije) | Dalibor | potvrda spec 13.4 i kalibracija podrazumevanih profila | [VERIFIKACIJA §3](docs/VERIFIKACIJA.md) |
+| 4 | **Potvrda da je release paket pokrenut** (`--version` = 0.5.0, GUI se otvara) | Dalibor | DoD Faze 4 (prijatelj pokreće paket) | [INSTALACIJA](docs/INSTALACIJA.md) |
+
+Benchmark je **kompletan** (CPU, CUDA RTX 3050, Apple M5 Pro MPS) — tu više
+ništa ne treba. Kada stignu stavke 1–3, radimo Fazu E (kalibracija pragova iz
+spec 13.2 i odluka o podrazumevanim varijantama).
 ## Verifikacija
 
 Šta proveriti i dostaviti pre izdavanja — benchmark, fizičke probe po fazama
