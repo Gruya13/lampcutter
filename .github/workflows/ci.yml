@@ -23,5 +23,6 @@ jobs:
           uv run ruff format --check src scripts
       - name: Zaključani test setovi (mreža blokirana)
         run: |
-          uv run python scripts/run_cases.py tests/cases/phase0a.json -- --disable-socket --allow-unix-socket
-          uv run python scripts/run_cases.py tests/cases/phase0b.json -- --disable-socket --allow-unix-socket
+          for suite in phase0a phase0b phase1; do
+            uv run python scripts/run_cases.py "tests/cases/$suite.json" -- --disable-socket --allow-unix-socket
+          done

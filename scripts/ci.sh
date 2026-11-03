@@ -9,8 +9,7 @@ uv run ruff check .
 echo "== ruff format --check =="
 uv run ruff format --check src scripts
 
-echo "== zaključani test set Faza 0a =="
-uv run python scripts/run_cases.py tests/cases/phase0a.json -- --disable-socket --allow-unix-socket
-
-echo "== zaključani test set Faza 0b =="
-uv run python scripts/run_cases.py tests/cases/phase0b.json -- --disable-socket --allow-unix-socket
+for suite in phase0a phase0b phase1; do
+  echo "== zaključani test set $suite =="
+  uv run python scripts/run_cases.py "tests/cases/$suite.json" -- --disable-socket --allow-unix-socket
+done

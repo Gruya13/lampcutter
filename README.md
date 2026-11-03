@@ -15,11 +15,18 @@ maska (`--mask-file`, SAM 2 tačka/okvir ili ručni poligon), čišćenje maske,
 skala u mm, vektorizacija, edge inset, kerf kompenzacija, SVG za LightBurn i
 debug izlazi.
 
+**Faza 1 (završena):** slotovi za fotografije proizvoljnog oblika (`PhotoSlot`),
+dekor (`DecorElement`, izdvajanje pragom/bojom u zoni ili SAM maskom), režimi
+`engrave`/`print`/`none`, `print_sheet.png` 1:1 sa registracionim oznakama,
+`photo_XX.png`/`decor_XX.png`, `.lamptpl` GeoJSON šabloni (round-trip 0,001 mm)
+i `manifest.json`. Poravnanje štampe i sečenja kroz zajednički koordinatni
+početak. Test set Faze 1: 42 testa.
+
 **Faza 0b (završena):** jezičak i prorez baze (spec 8.3) sa zazorom i
 upozorenjima, kalibracija kerfa (`lampcutter calibrate`), `PipelineCache` (faze
 S1–S6), `refine_edge` za stvarne fotografije i benchmark (CPU + CUDA; Mac MPS se
-čeka). Zaključani test setovi: Faza 0a 38 testova, Faza 0b 37 testova — svi
-prolaze. Fizička provera (LightBurn uvoz, probni rez, naleganje jezička) je na
+čeka). Zaključani test setovi: Faza 0a 38, Faza 0b 37, Faza 1 42 — ukupno 117
+testova, svi prolaze. Fizička provera (LightBurn uvoz, probni rez, naleganje jezička) je na
 korisniku kad bude imao vremena.
 
 **Faza E (odložena):** čeka 2–3 stvarne fotografije upaljene lampe i 2–3 mockupa
@@ -37,6 +44,7 @@ uv run ruff check .        # lint
 ./scripts/ci.sh            # lint + zaključani test set (kao na CI-ju)
 uv run python scripts/run_cases.py tests/cases/phase0a.json   # test set 0a
 uv run python scripts/run_cases.py tests/cases/phase0b.json   # test set 0b
+uv run python scripts/run_cases.py tests/cases/phase1.json    # test set 1
 ```
 
 Ciljna Python verzija je 3.12 (zbog PyTorch/SAM 2).

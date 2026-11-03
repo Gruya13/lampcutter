@@ -34,6 +34,22 @@ Format: Keep a Changelog. Faze iz `LAMPCUTTER_SPEC.md` (odeljak 16).
   `scripts/run_cases.py` i API ugovor `docs/api-phase0a.md`.
 - GitHub: privatni repo kao `main`; lokalni repo je staging.
 
+### Dodato — Faza 1
+
+- `core/slots.py`: GeoJSON serijalizacija konture, slotova, dekora i celog
+  šablona (`schema: 1`, zaokruživanje na 0,001 mm), `.lamptpl` save/load i
+  validacija „pobeglog klika" (`validate_slot_mask`).
+- `core/decor.py`: izdvajanje dekora pragom (luminansa/boja, Otsu adaptivni) i
+  SAM maskom, režimi `engrave`/`print`/`none`, margina unutar konture i
+  upozorenja za tanke linije.
+- `core/compose.py`: foto slotovi (`cover`/`contain`, zoom, pan, rotacija,
+  bleed), efektivni DPI sa upozorenjem < 150, `print_sheet.png` 1:1 sa
+  registracionim oznakama i opcijom `cut_then_print`/`print_then_cut`,
+  `photo_XX.png`, `decor_XX.png`, `manifest.json` i `export_bundle`.
+- `svg_writer`: gravura ide u grupu `engrave` (`#0000FF`) bez kerf offseta.
+- Zaključan test set Faze 1 (42 testa, autor agy): poravnanje, slotovi, dekor,
+  serijalizacija; ukupno 117 testova u sva tri seta.
+
 ### Dodato — Faza 0b
 
 - `geometry`: jezičak i prorez baze (8.3) — `add_tab`, `bottom_contact`,
