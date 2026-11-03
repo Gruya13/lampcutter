@@ -158,7 +158,19 @@ def benchmark_variant(
         array = io_utils.image_to_array(working)
         original_size = image.size
         height, width = working.size[1], working.size[0]
-        prompt = Prompt(points=((width // 2, height // 2),), labels=(1,))
+
+        # Prompt from the reference mask when one exists: a centre point can land
+        # inside a hole or on a narrow neck, which would benchmark the wrong mask.
+        reference_path = image_path.parent / "ref" / f"{image_path.stem}.png"
+        if reference_path.exists():
+            reference_work = mask_from_file(reference_path, target_size=working.size)
+            ys, xs = np.nonzero(reference_work)
+            prompt = Prompt(
+                box=(int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1)
+            )
+        else:
+            prompt = Prompt(points=((width // 2, height // 2),), labels=(1,))
+        multimask = Segmenter.predict_multimask_rule(prompt)
 
         reset_peak_memory(device)
         set_image_start = time.perf_counter()
@@ -169,7 +181,7 @@ def benchmark_variant(
         result = None
         for _ in range(repeat):
             predict_start = time.perf_counter()
-            result = segmenter.predict(prompt, multimask=True)
+            result = segmenter.predict(prompt, multimask=multimask)
             predict_seconds.append(time.perf_counter() - predict_start)
 
         entry: dict = {

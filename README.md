@@ -51,16 +51,22 @@ Izlaz: `lamp_cut.svg` (mm, sloj `cut-outer` u `#FF0000`). Debug:
 
 ## Benchmark
 
+Instalacija ML stacka van locka (CPU wheel; `uv sync` bi ga uklonio):
+
 ```bash
-uv sync --extra ml
-uv run python scripts/fetch_models.py        # build-time; upisuje models/manifest.json
-uv run python scripts/benchmark.py --images tests/data --out benchmark_report
+uv pip install torch==2.14.1 torchvision==0.29.1 --index-url https://download.pytorch.org/whl/cpu
+uv pip install setuptools wheel hydra-core iopath tqdm
+uv pip install --no-build-isolation "sam-2 @ git+https://github.com/facebookresearch/sam2.git@2b90b9f5ceec907a1c18123530e92e794ad901a4"
+uv run --no-sync python scripts/fetch_models.py --variants tiny,small,base_plus,large
+uv run --no-sync python scripts/benchmark.py --images tests/data --variants tiny,small,base_plus,large \
+    --reference-mm srce=200,figura8=220,ploca=150 --out benchmark_report
 ```
 
-Skripta meri učitavanje modela, `set_image`, `predict` i vršnu memoriju po
-varijanti; sa referentnim maskama računa i odstupanje ivice u mm (13.2).
-Rezultat je `benchmark_report/benchmark.json` + `BENCHMARK.md` — pokrenuti na
-ovom uređaju i na Mac Silicon mašini, pa uporediti.
+Prvi rezultat (CPU, sintetički mockupi) je u
+[docs/benchmark/2026-11-03-cpu.md](docs/benchmark/2026-11-03-cpu.md):
+`small` je najbolji balans — set_image 2,5 s, predict 0,07 s, **3,5 s end-to-end**,
+ispod cilja od 15 s iz spec 13.4. Na CUDA 4 GB i Mac MPS benchmark se još pokreće
+(skripta detektuje uređaj automatski).
 
 ## Testovi i zaključavanje
 

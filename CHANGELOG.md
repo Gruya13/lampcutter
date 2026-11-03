@@ -41,3 +41,13 @@ Format: Keep a Changelog. Faze iz `LAMPCUTTER_SPEC.md` (odeljak 16).
   wiki i zaključan kroz `agent-probe/test-lock.mjs` (38/38 prolazi).
 - Posle prvog izvršavanja popravljena 4 implementaciona detalja gde je API
   ugovor bio nedorečen i 3 testa (autor, kroz `--relock` sa trajnim razlogom).
+
+### Benchmark (CPU, prvi krug)
+
+- Instaliran ML stack (torch 2.14.1+cpu, SAM 2 pinovan commit) i preuzeti svi
+  SAM 2.1 checkpointi sa SHA256 manifestom.
+- Sintetički benchmark uzorci (srce, figura-8, ploča) + referentne maske.
+- Izmerena segmencija i end-to-end za tiny/small/base_plus/large:
+  `small` 3,5 s end-to-end (cilj < 15 s na CPU ispunjen), `large` 2,2 GB RAM.
+- Rezultati: `docs/benchmark/2026-11-03-cpu.md` (+ JSON). Benchmark na CUDA 4 GB
+  i MPS ostaje za ciljne mašine.
