@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+.uv-cache/
+
+# Testiranje i lint
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Alati
+.DS_Store
+.idea/
+.vscode/
+
+# Izlazi aplikacije
+out/
+izlaz/
+kalibracija/
+benchmark_report/
+
+# Modeli: checkpointi se ne commit-uju; manifest i README ostaju
+models/*
+!models/manifest.json
+!models/README.md
+
+# Wiki je sopstveni git repo (embedded) — ne ulazi u glavni repo
+.wiki/
+
+# Test runner temp
+.test-run/
+
+# Privatni test podaci
+tests/data/private/

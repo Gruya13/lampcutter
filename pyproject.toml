@@ -1,0 +1,62 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lampcutter"
+version = "0.1.0"
+description = "Pretvara sliku dizajna akrilne lampe u SVG za sečenje, PNG za UV štampu i sloj gravure."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = { text = "Proprietary" }
+authors = [{ name = "Lampcutter" }]
+# Egzaktni pinovi; izmena ide kroz uv.lock u istom commitu (spec 0.2.9).
+# Filter: nijedna verzija nije objavljena u poslednjih 14 dana (provereno 2026-11-03).
+dependencies = [
+    "numpy==2.5.4",
+    "opencv-python-headless==5.0.0.93",
+    "pillow==13.0.0",
+    "platformdirs==4.13.5",
+    "potracer==0.0.4",
+    "shapely==2.2.0",
+]
+
+[project.scripts]
+lampcutter = "lampcutter.cli:main"
+
+[project.optional-dependencies]
+# GUI (Faza 2+) i ML (Faza E): dodaje se uz `uv sync --extra ...`.
+# Verzije se fiksiraju u uv.lock pri uvođenju, u skladu sa specifikacijom 0.2.9.
+gui = ["PySide6"]
+ml = ["torch"]
+
+[dependency-groups]
+dev = [
+    "coverage==7.16.2",
+    "pytest==9.1.1",
+    "pytest-cov==7.1.0",
+    "pytest-socket==0.8.1",
+    "ruff==0.17.1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lampcutter"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+    "slow: spori testovi (model/GUI) — isključiti u brzom CI-ju",
+    "gpu: testovi koji traže CUDA/MPS",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.coverage.run]
+source = ["lampcutter"]
