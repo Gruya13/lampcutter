@@ -227,7 +227,10 @@ def validate_slot_mask(
     warnings: list[str] = []
     area_mm2 = float(binary.sum()) * mm_per_px**2
     if area_mm2 < cfg.slot_min_area_mm2:
-        warnings.append(f"slot je premali ({area_mm2:.1f} mm²); moguće da je klik promašio")
+        warnings.append(
+            f"slot je premali — površina {area_mm2:.1f} mm² je ispod "
+            f"{cfg.slot_min_area_mm2:.0f} mm²; moguće da je klik promašio"
+        )
     contours, _ = _contours(binary)
     solidity = 1.0
     if contours:
@@ -244,7 +247,9 @@ def validate_slot_mask(
         candidate = _mask_to_polygon(binary)
         if candidate is not None:
             for index, existing in enumerate(existing_slots):
-                intersection = candidate.intersection(existing).area
+                # Accept either bare shapely polygons or PhotoSlot objects.
+                existing_polygon = getattr(existing, "polygon_mm", existing)
+                intersection = candidate.intersection(existing_polygon).area
                 if intersection / new_area > cfg.slot_overlap_max:
                     warnings.append(
                         f"slot # {index + 1} se previše preklapa sa novim slotom "
