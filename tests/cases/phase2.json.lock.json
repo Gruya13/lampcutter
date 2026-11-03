@@ -1,13 +1,21 @@
 {
   "version": 1,
   "casesFile": "phase2.json",
-  "casesSha256": "a38b638a5adfc0ff78210ee5015e542034f4823adaaf9e68de77401bd0b0fb1e",
+  "casesSha256": "cd62c451efd4258dca2e7bd3fe9cac333b576014e47a6899cf137bac9dde3290",
   "cases": 37,
   "entry": "test_phase2_spec.py",
   "gitRel": "tests/cases/phase2.json",
   "gitState": "clean",
-  "gitRevision": "02c9b088527e77c0b0051836ad7b7e492903eff5",
+  "gitRevision": "35924c3091c2fbb3502e4652e72c79065665e267",
   "lockedAt": "2026-11-03T12:10:09.514Z",
   "lockedBy": "agy",
-  "relocks": []
+  "relocks": [
+    {
+      "at": "2026-11-03T12:22:23.389Z",
+      "by": "agy",
+      "reason": "test_elements_panel_* su koristili shapely box bez importa; dodata jedna import linija; revizija 8345d8b",
+      "from": "a38b638a5adfc0ff78210ee5015e542034f4823adaaf9e68de77401bd0b0fb1e",
+      "to": "cd62c451efd4258dca2e7bd3fe9cac333b576014e47a6899cf137bac9dde3290"
+    }
+  ]
 }
