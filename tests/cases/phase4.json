@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "suite": "phase4",
+  "author": "agy",
+  "source": "wiki:.wiki/shared/artifacts/tests-phase4.py",
+  "entry": "test_phase4_spec.py",
+  "cases": [
+    {
+      "id": "test_version_module"
+    },
+    {
+      "id": "test_version_pyproject_match"
+    },
+    {
+      "id": "test_cli_version_flag_exits_zero"
+    },
+    {
+      "id": "test_python_m_lampcutter_version_subprocess"
+    },
+    {
+      "id": "test_cli_help_contains_all_commands"
+    },
+    {
+      "id": "test_project_scripts_entrypoint"
+    },
+    {
+      "id": "test_build_module_loads"
+    },
+    {
+      "id": "test_build_project_version"
+    },
+    {
+      "id": "test_build_platform_tag"
+    },
+    {
+      "id": "test_build_command_default_onedir"
+    },
+    {
+      "id": "test_build_command_onefile"
+    },
+    {
+      "id": "test_build_command_translations_data"
+    },
+    {
+      "id": "test_build_main_dry_run_exits_zero"
+    },
+    {
+      "id": "test_build_main_dry_run_does_not_call_subprocess"
+    },
+    {
+      "id": "test_build_make_archive_onedir"
+    },
+    {
+      "id": "test_build_make_archive_onefile"
+    },
+    {
+      "id": "test_build_make_archive_missing_output_raises_filenotfound"
+    },
+    {
+      "id": "test_ci_workflow_valid_yaml"
+    },
+    {
+      "id": "test_ci_workflow_fetch_depth_zero"
+    },
+    {
+      "id": "test_ci_workflow_uv_sync_dependencies"
+    },
+    {
+      "id": "test_ci_workflow_runs_five_suites"
+    },
+    {
+      "id": "test_release_workflow_valid_yaml_and_trigger"
+    },
+    {
+      "id": "test_release_workflow_jobs_and_matrix"
+    },
+    {
+      "id": "test_release_workflow_steps"
+    },
+    {
+      "id": "test_docs_installation_exists"
+    },
+    {
+      "id": "test_docs_installation_headings"
+    },
+    {
+      "id": "test_docs_installation_key_commands"
+    },
+    {
+      "id": "test_docs_installation_archive_naming"
+    },
+    {
+      "id": "test_pyproject_gui_extra_pins_pyside6"
+    },
+    {
+      "id": "test_pyproject_dev_dependencies"
+    }
+  ],
+  "source_text": "\"\"\"\nNezavisan test set za Fazu 4 (distribucija) — Lampcutter\nAutor: agy (verifikaciona nit / crveni tim)\nIzvori istine: LAMPCUTTER_SPEC.md (16, Faza 4) i docs/api-phase4.md\n\"\"\"\nimport argparse\nimport importlib.util\nimport os\nimport pathlib\nimport subprocess\nimport sys\nimport tomllib\nimport zipfile\nimport pytest\nimport yaml\n\nimport lampcutter\nimport lampcutter.cli\n\n\ndef find_repo_root() -> pathlib.Path:\n    cur = pathlib.Path.cwd()\n    for p in [cur, cur.parent, cur.parent.parent]:\n        if (p / \"pyproject.toml\").is_file():\n            return p\n    return cur\n\n\nROOT = find_repo_root()\n\n\ndef load_build_module():\n    script_path = ROOT / \"scripts\" / \"build.py\"\n    assert script_path.is_file(), f\"Nedostaje scripts/build.py: {script_path}\"\n    spec = importlib.util.spec_from_file_location(\"build_script\", script_path)\n    assert spec is not None and spec.loader is not None\n    mod = importlib.util.module_from_spec(spec)\n    spec.loader.exec_module(mod)\n    return mod\n\n\n# ============================================================================\n# 1. Verzija i ulazne tačke (spec 16, api-phase4)\n# ============================================================================\n\ndef test_version_module():\n    assert lampcutter.__version__ == \"0.4.0\"\n\ndef test_version_pyproject_match():\n    pyproj_path = ROOT / \"pyproject.toml\"\n    assert pyproj_path.is_file()\n    data = tomllib.loads(pyproj_path.read_text(encoding=\"utf-8\"))\n    assert data[\"project\"][\"version\"] == \"0.4.0\"\n    assert data[\"project\"][\"version\"] == lampcutter.__version__\n\ndef test_cli_version_flag_exits_zero(capsys):\n    with pytest.raises(SystemExit) as exc:\n        lampcutter.cli.main([\"--version\"])\n    assert exc.value.code == 0\n    captured = capsys.readouterr()\n    assert \"lampcutter 0.4.0\" in captured.out\n\ndef test_python_m_lampcutter_version_subprocess():\n    res = subprocess.run(\n        [sys.executable, \"-m\", \"lampcutter\", \"--version\"],\n        capture_output=True,\n        text=True,\n        cwd=str(ROOT),\n    )\n    assert res.returncode == 0\n    combined = res.stdout + res.stderr\n    assert \"lampcutter 0.4.0\" in combined\n\ndef test_cli_help_contains_all_commands(capsys):\n    with pytest.raises(SystemExit) as exc:\n        lampcutter.cli.main([\"--help\"])\n    assert exc.value.code == 0\n    captured = capsys.readouterr()\n    out = captured.out.lower()\n    for cmd in [\"run\", \"calibrate\", \"export\", \"gui\", \"benchmark\"]:\n        assert cmd in out\n\ndef test_project_scripts_entrypoint():\n    data = tomllib.loads((ROOT / \"pyproject.toml\").read_text(encoding=\"utf-8\"))\n    assert data[\"project\"][\"scripts\"][\"lampcutter\"] == \"lampcutter.cli:main\"\n\n\n# ============================================================================\n# 2. scripts/build.py: funkcije, tagovi i komanda (api-phase4)\n# ============================================================================\n\ndef test_build_module_loads():\n    mod = load_build_module()\n    for fn in [\"project_version\", \"platform_tag\", \"build_command\", \"make_archive\", \"main\"]:\n        assert hasattr(mod, fn)\n\ndef test_build_project_version():\n    mod = load_build_module()\n    assert mod.project_version() == \"0.4.0\"\n\ndef test_build_platform_tag():\n    mod = load_build_module()\n    tag = mod.platform_tag()\n    assert isinstance(tag, str)\n    assert \"-\" in tag\n    os_name, arch = tag.split(\"-\", 1)\n    assert os_name in (\"linux\", \"macos\", \"windows\")\n    assert arch in (\"x86_64\", \"arm64\", \"amd64\", \"aarch64\")\n\ndef test_build_command_default_onedir():\n    mod = load_build_module()\n    args = argparse.Namespace(name=\"lampcutter\", dist_dir=\"/tmp/dist\", work_dir=\"/tmp/work\", onefile=False)\n    cmd = mod.build_command(args)\n    assert \"-m\" in cmd\n    assert \"PyInstaller\" in cmd\n    assert \"--noconfirm\" in cmd\n    assert \"--clean\" in cmd\n    assert \"--name\" in cmd\n    assert \"lampcutter\" in cmd\n    assert \"--distpath\" in cmd\n    assert \"--workpath\" in cmd\n    assert \"--paths\" in cmd\n    assert \"--collect-submodules\" in cmd\n    assert \"lampcutter\" in cmd\n    assert \"--console\" in cmd\n    assert cmd[-1].endswith(\"__main__.py\")\n    assert \"--onefile\" not in cmd\n\ndef test_build_command_onefile():\n    mod = load_build_module()\n    args = argparse.Namespace(name=\"lampcutter\", dist_dir=\"/tmp/dist\", work_dir=\"/tmp/work\", onefile=True)\n    cmd = mod.build_command(args)\n    assert \"--onefile\" in cmd\n\ndef test_build_command_translations_data():\n    mod = load_build_module()\n    args = argparse.Namespace(name=\"lampcutter\", dist_dir=\"/tmp/dist\", work_dir=\"/tmp/work\", onefile=False)\n    cmd = mod.build_command(args)\n    if mod.TRANSLATIONS_DIR.is_dir():\n        assert \"--add-data\" in cmd\n\n## 2026-11-03T13:27:02.933Z — agy\n\n\n\n# ============================================================================\n# 2b. scripts/build.py: dry-run, make_archive i greške (api-phase4)\n# ============================================================================\n\ndef test_build_main_dry_run_exits_zero(capsys):\n    mod = load_build_module()\n    ret = mod.main([\"--dry-run\"])\n    assert ret == 0\n    captured = capsys.readouterr()\n    assert \"PyInstaller\" in captured.out\n\ndef test_build_main_dry_run_does_not_call_subprocess(monkeypatch):\n    mod = load_build_module()\n    called = []\n    def fake_run(*args, **kwargs):\n        called.append(True)\n        raise RuntimeError(\"subprocess.run ne sme biti pozvan pri --dry-run\")\n    monkeypatch.setattr(subprocess, \"run\", fake_run)\n    ret = mod.main([\"--dry-run\"])\n    assert ret == 0\n    assert called == []\n\ndef test_build_make_archive_onedir(tmp_path):\n    mod = load_build_module()\n    dist = tmp_path / \"dist\"\n    bundle = dist / \"lampcutter\"\n    bundle.mkdir(parents=True)\n    (bundle / \"binary_file\").write_text(\"mock binary\", encoding=\"utf-8\")\n    sub = bundle / \"resources\"\n    sub.mkdir()\n    (sub / \"data.txt\").write_text(\"mock data\", encoding=\"utf-8\")\n\n    args = argparse.Namespace(name=\"lampcutter\", dist_dir=str(dist), onefile=False)\n    zip_path = mod.make_archive(args)\n    assert zip_path.is_file()\n    assert zip_path.name == f\"lampcutter-0.4.0-{mod.platform_tag()}.zip\"\n\n    with zipfile.ZipFile(zip_path, \"r\") as z:\n        names = z.namelist()\n        assert any(\"binary_file\" in n for n in names)\n        assert any(\"data.txt\" in n for n in names)\n\ndef test_build_make_archive_onefile(tmp_path):\n    mod = load_build_module()\n    dist = tmp_path / \"dist_onefile\"\n    dist.mkdir(parents=True)\n    exe_name = \"lampcutter.exe\" if sys.platform == \"win32\" else \"lampcutter\"\n    (dist / exe_name).write_text(\"mock executable\", encoding=\"utf-8\")\n\n    args = argparse.Namespace(name=\"lampcutter\", dist_dir=str(dist), onefile=True)\n    zip_path = mod.make_archive(args)\n    assert zip_path.is_file()\n    with zipfile.ZipFile(zip_path, \"r\") as z:\n        assert exe_name in z.namelist()\n\ndef test_build_make_archive_missing_output_raises_filenotfound(tmp_path):\n    mod = load_build_module()\n    args = argparse.Namespace(name=\"lampcutter\", dist_dir=str(tmp_path / \"non_existent\"), onefile=False)\n    with pytest.raises(FileNotFoundError):\n        mod.make_archive(args)\n\n\n# ============================================================================\n# 3. GitHub Workflows: CI i Release (api-phase4)\n# ============================================================================\n\ndef test_ci_workflow_valid_yaml():\n    ci_path = ROOT / \".github\" / \"workflows\" / \"ci.yml\"\n    assert ci_path.is_file()\n    data = yaml.safe_load(ci_path.read_text(encoding=\"utf-8\"))\n    assert isinstance(data, dict)\n    assert \"jobs\" in data and \"test\" in data[\"jobs\"]\n\ndef test_ci_workflow_fetch_depth_zero():\n    ci = yaml.safe_load((ROOT / \".github\" / \"workflows\" / \"ci.yml\").read_text(encoding=\"utf-8\"))\n    steps = ci[\"jobs\"][\"test\"][\"steps\"]\n    checkout = next(s for s in steps if \"actions/checkout\" in s.get(\"uses\", \"\"))\n    assert checkout.get(\"with\", {}).get(\"fetch-depth\") == 0\n\ndef test_ci_workflow_uv_sync_dependencies():\n    ci = yaml.safe_load((ROOT / \".github\" / \"workflows\" / \"ci.yml\").read_text(encoding=\"utf-8\"))\n    steps = ci[\"jobs\"][\"test\"][\"steps\"]\n    runs = \" \".join(s.get(\"run\", \"\") for s in steps)\n    assert \"uv sync --group dev --extra gui\" in runs\n\ndef test_ci_workflow_runs_five_suites():\n    ci = yaml.safe_load((ROOT / \".github\" / \"workflows\" / \"ci.yml\").read_text(encoding=\"utf-8\"))\n    steps = ci[\"jobs\"][\"test\"][\"steps\"]\n    runs = \" \".join(s.get(\"run\", \"\") for s in steps)\n    for suite in [\"phase0a\", \"phase0b\", \"phase1\", \"phase2\", \"phase3\"]:\n        assert suite in runs\n\ndef test_release_workflow_valid_yaml_and_trigger():\n    rel_path = ROOT / \".github\" / \"workflows\" / \"release.yml\"\n    assert rel_path.is_file()\n    rel = yaml.safe_load(rel_path.read_text(encoding=\"utf-8\"))\n    assert rel.get(\"on\", {}).get(\"push\", {}).get(\"tags\") == [\"v*\"]\n    assert rel.get(\"permissions\", {}).get(\"contents\") == \"write\"\n\ndef test_release_workflow_jobs_and_matrix():\n    rel = yaml.safe_load((ROOT / \".github\" / \"workflows\" / \"release.yml\").read_text(encoding=\"utf-8\"))\n    assert \"build\" in rel[\"jobs\"]\n    assert \"release\" in rel[\"jobs\"]\n    assert rel[\"jobs\"][\"release\"][\"needs\"] == \"build\"\n    matrix = rel[\"jobs\"][\"build\"][\"strategy\"][\"matrix\"][\"include\"]\n    os_list = [m[\"os\"] for m in matrix]\n    assert \"ubuntu-latest\" in os_list\n    assert \"macos-latest\" in os_list\n    assert \"windows-latest\" in os_list\n\ndef test_release_workflow_steps():\n    rel = yaml.safe_load((ROOT / \".github\" / \"workflows\" / \"release.yml\").read_text(encoding=\"utf-8\"))\n    build_steps = rel[\"jobs\"][\"build\"][\"steps\"]\n    checkout = next(s for s in build_steps if \"actions/checkout\" in s.get(\"uses\", \"\"))\n    assert checkout.get(\"with\", {}).get(\"fetch-depth\") == 0\n    build_runs = \" \".join(s.get(\"run\", \"\") for s in build_steps)\n    assert \"scripts/build.py --archive\" in build_runs\n    upload = next(s for s in build_steps if \"actions/upload-artifact\" in s.get(\"uses\", \"\"))\n    assert \"dist/*.zip\" in upload.get(\"with\", {}).get(\"path\", \"\")\n\n    release_steps = rel[\"jobs\"][\"release\"][\"steps\"]\n    gh_release = next(s for s in release_steps if \"softprops/action-gh-release\" in s.get(\"uses\", \"\"))\n    assert \"dist/*.zip\" in gh_release.get(\"with\", {}).get(\"files\", \"\")\n\n\n## 2026-11-03T13:27:09.851Z — agy\n\n\n\n# ============================================================================\n# 4. docs/INSTALACIJA.md & pyproject.toml validacije (spec 16, api-phase4)\n# ============================================================================\n\ndef test_docs_installation_exists():\n    doc_path = ROOT / \"docs\" / \"INSTALACIJA.md\"\n    assert doc_path.is_file()\n\ndef test_docs_installation_headings():\n    content = (ROOT / \"docs\" / \"INSTALACIJA.md\").read_text(encoding=\"utf-8\").lower()\n    expected_topics = [\n        \"preuzimanje\",\n        \"gatekeeper\",\n        \"linux\",\n        \"prvi koraci\",\n        \"ml stack\",\n        \"iz izvora\",\n        \"build\",\n        \"rešavanje problema\",\n    ]\n    for topic in expected_topics:\n        assert topic in content\n\ndef test_docs_installation_key_commands():\n    content = (ROOT / \"docs\" / \"INSTALACIJA.md\").read_text(encoding=\"utf-8\")\n    for cmd in [\"--version\", \"calibrate\", \"run\", \"--mask-file\", \"gui\", \"xattr\"]:\n        assert cmd in content\n\ndef test_docs_installation_archive_naming():\n    content = (ROOT / \"docs\" / \"INSTALACIJA.md\").read_text(encoding=\"utf-8\")\n    assert \"lampcutter-0.4.0-\" in content\n    assert \".zip\" in content\n\ndef test_pyproject_gui_extra_pins_pyside6():\n    pyproj = tomllib.loads((ROOT / \"pyproject.toml\").read_text(encoding=\"utf-8\"))\n    gui_deps = pyproj[\"project\"][\"optional-dependencies\"][\"gui\"]\n    assert any(\"PySide6==\" in d and \"6.12.0\" in d for d in gui_deps)\n\ndef test_pyproject_dev_dependencies():\n    pyproj = tomllib.loads((ROOT / \"pyproject.toml\").read_text(encoding=\"utf-8\"))\n    dev_deps = pyproj[\"dependency-groups\"][\"dev\"]\n    dev_names = [d.split(\"==\")[0].lower() for d in dev_deps]\n    assert \"pyinstaller\" in dev_names\n    assert \"pytest-qt\" in dev_names\n    assert \"pyyaml\" in dev_names\n\n"
+}
