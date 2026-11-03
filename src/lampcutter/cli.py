@@ -3,16 +3,22 @@
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import subprocess
 import sys
 import warnings
 from pathlib import Path
 
 from lampcutter.config import Config
-from lampcutter.core import calibrate
+from lampcutter.core import calibrate, compose, decor, slots
 from lampcutter.core.pipeline import PipelineError, run_pipeline
 from lampcutter.models import MaterialProfile, Prompt
-from lampcutter.settings import AppSettings, save_materials
+from lampcutter.settings import (
+    AppSettings,
+    load_bases,
+    load_materials,
+    save_materials,
+)
 
 
 def parse_point(value: str) -> tuple[int, int, int]:
@@ -155,7 +161,30 @@ def build_parser() -> argparse.ArgumentParser:
     )
     calibrate_parser.add_argument("--config", type=Path, default=None, help="opcioni config.toml")
     calibrate_parser.add_argument(
+        "--materials-file",
+        type=Path,
+        default=None,
+        help="JSON u koji se upisuje izmereni kerf (umesto korisničkog foldera)",
+    )
+    calibrate_parser.add_argument(
         "--out", type=Path, default=Path("kalibracija"), help="izlazni direktorijum"
+    )
+
+    export_parser = subparsers.add_parser(
+        "export",
+        help="izvezi lamp_cut.svg, print_sheet.png, photo/decor PNG i manifest.json iz .lamptpl",
+    )
+    export_parser.add_argument("--template", type=Path, required=True, help=".lamptpl fajl")
+    export_parser.add_argument(
+        "--out", type=Path, default=Path("izlaz"), help="izlazni direktorijum"
+    )
+    export_parser.add_argument("--config", type=Path, default=None, help="opcioni config.toml")
+    export_parser.add_argument("--print-dpi", type=int, default=None, help="DPI za štampu")
+    export_parser.add_argument(
+        "--print-order",
+        choices=["cut_then_print", "print_then_cut"],
+        default=None,
+        help="redosled sečenja i štampe",
     )
 
     benchmark_parser = subparsers.add_parser(
@@ -167,6 +196,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="argumenti za scripts/benchmark.py (npr. --images tests/data --out benchmark_report)",
     )
     return parser
+
+
+def _load_settings(args: argparse.Namespace) -> AppSettings:
+    """User settings, optionally overridden by explicit profile JSON files."""
+    settings = AppSettings.load()
+    materials_file = getattr(args, "materials_file", None)
+    bases_file = getattr(args, "bases_file", None)
+    if materials_file is not None:
+        settings.materials = load_materials(materials_file)
+    if bases_file is not None:
+        settings.bases = load_bases(bases_file)
+    return settings
 
 
 def _progress_printer(stage: str, fraction: float) -> None:
@@ -182,7 +223,7 @@ def _run_command(args: argparse.Namespace) -> int:
     if args.sam_variant is not None:
         config.sam_variant = args.sam_variant
 
-    settings = AppSettings.load()
+    settings = _load_settings(args)
     material = settings.material(args.material)
     base = settings.base(args.base) if args.base is not None else None
     prompt = build_prompt(args.point, args.box)
@@ -243,7 +284,7 @@ def _calibrate_command(args: argparse.Namespace) -> int:
     print(f"Prosečan kerf: {kerf:.3f} mm")
 
     if args.material is not None:
-        settings = AppSettings.load()
+        settings = _load_settings(args)
         material = settings.material(args.material)
         updated = MaterialProfile(
             id=material.id,
@@ -254,7 +295,7 @@ def _calibrate_command(args: argparse.Namespace) -> int:
             notes=material.notes,
         )
         materials = [updated if item.id == material.id else item for item in settings.materials]
-        path = save_materials(materials)
+        path = save_materials(materials, args.materials_file)
         print(f"Kerf upisan u profil {material.id}: {path}")
     return 0
 
@@ -270,6 +311,41 @@ def _benchmark_command(args: argparse.Namespace) -> int:
     return completed.returncode
 
 
+def _export_command(args: argparse.Namespace) -> int:
+    config = Config.from_toml(args.config) if args.config is not None else Config()
+    if args.print_dpi is not None:
+        config = dataclasses.replace(config, print_dpi=args.print_dpi)
+    if args.print_order is not None:
+        config = dataclasses.replace(config, print_order=args.print_order)
+
+    template = slots.load_template(args.template)
+    decor_warnings = decor.decor_warnings(
+        template.decor,
+        template.outline.nominal,
+        template.material,
+        config.engrave_margin_mm,
+        config,
+    )
+    result = compose.export_bundle(template, args.out, config)
+    print(f"SVG: {result.svg_path}")
+    if result.print_sheet_path is not None:
+        print(f"Print sheet: {result.print_sheet_path}")
+    if result.photo_paths:
+        print("Photo: " + ", ".join(str(path) for path in result.photo_paths.values()))
+    if result.decor_paths:
+        print("Dekor: " + ", ".join(str(path) for path in result.decor_paths.values()))
+    if result.manifest_path is not None:
+        print(f"Manifest: {result.manifest_path}")
+    if result.effective_dpi:
+        dpi_text = ", ".join(
+            f"{slot_id}={dpi:.0f}" for slot_id, dpi in result.effective_dpi.items()
+        )
+        print(f"Efektivni DPI: {dpi_text}")
+    for message in decor_warnings + result.warnings:
+        print(f"Upozorenje: {message}", file=sys.stderr)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """Entry point for the `lampcutter` console script."""
     parser = build_parser()
@@ -279,6 +355,8 @@ def main(argv: list[str] | None = None) -> int:
             return _run_command(args)
         if args.command == "calibrate":
             return _calibrate_command(args)
+        if args.command == "export":
+            return _export_command(args)
         if args.command == "benchmark":
             return _benchmark_command(args)
         raise PipelineError(f"Nepoznata komanda {args.command!r}")

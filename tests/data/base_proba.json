@@ -1,0 +1,15 @@
+[
+  {
+    "id": "moja-baza",
+    "name": "Moja baza (upiši izmerene mere)",
+    "slot_length_mm": 80,
+    "slot_thickness_mm": 3.4,
+    "slot_dimensions": "measured",
+    "base_kerf_mm": 0,
+    "tab_width_mm": 78,
+    "tab_height_mm": 8,
+    "tab_fit_mm": 0,
+    "tab_offset_mm": 0,
+    "corner_radius_mm": 0.5
+  }
+]

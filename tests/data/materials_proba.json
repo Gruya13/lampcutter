@@ -1,0 +1,18 @@
+[
+  {
+    "id": "acrylic-3",
+    "name": "Akril providni 3 mm",
+    "thickness_mm": 3,
+    "kerf_mm": 0.18,
+    "min_feature_mm": 1.5,
+    "notes": ""
+  },
+  {
+    "id": "acrylic-5",
+    "name": "Akril providni 5 mm",
+    "thickness_mm": 5,
+    "kerf_mm": 0.22,
+    "min_feature_mm": 2,
+    "notes": ""
+  }
+]

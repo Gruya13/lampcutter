@@ -65,6 +65,13 @@ Izlaz: `lamp_cut.svg` (mm, sloj `cut-outer` u `#FF0000`). Debug:
 `mask_raw.png`, `mask_clean.png`, `overlay.png`, `contour_preview.svg`.
 `--base` dodaje jezičak i ispisuje zazor prema profilu baze.
 
+## Verifikacija (za Dalibora i agente)
+
+Kompletno uputstvo šta proveriti i dostaviti — benchmark na Mac-u, fizičke probe
+po fazama (LightBurn dimenzije, kerf, jezičak, gravura, poravnanje štampe) i
+ulazni materijal za Fazu E:
+[docs/VERIFIKACIJA.md](docs/VERIFIKACIJA.md).
+
 ## Benchmark
 
 Instalacija ML stacka van locka (CPU wheel; `uv sync` bi ga uklonio):
