@@ -106,8 +106,12 @@ Rezultati:
   `set_image` 0,03 s (~85× brže od CPU), `large` staje u 4 GB VRAM.
 - **CPU (16 jezgara)** — [2026-11-03-cpu.md](docs/benchmark/2026-11-03-cpu.md):
   `small` je najbolji balans — **3,5 s end-to-end**, ispod cilja od 15 s.
-- **macOS (MPS)** — još se meri; uporedna tabela:
-  [docs/benchmark/POREDJENJE-PLATFORMI.md](docs/benchmark/POREDJENJE-PLATFORMI.md).
+- **Apple M5 Pro (MPS, 24 GB)** — [2026-11-03-mac-m5-pro.md](docs/benchmark/2026-11-03-mac-m5-pro.md):
+  `set_image` 0,01–0,08 s, `predict` 0,04–0,14 s, `large` 1013 MB; cilj < 3 s
+  ispunjen, kvalitet identičan CPU/CUDA.
+
+Uporedna tabela svih platformi:
+[docs/benchmark/POREDJENJE-PLATFORMI.md](docs/benchmark/POREDJENJE-PLATFORMI.md).
 
 Uputstvo za pokretanje benchmarka na drugoj mašini:
 [docs/benchmark/UPUTSTVO-ZA-AGENTA.md](docs/benchmark/UPUTSTVO-ZA-AGENTA.md).

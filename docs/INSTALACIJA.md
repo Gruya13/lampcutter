@@ -117,4 +117,5 @@ Version se čita iz `pyproject.toml`.
 | Qt greška o platformi | `QT_QPA_PLATFORM=offscreen` za headless; na desktopu `xcb`/`wayland` |
 | „Model nije instaliran" | lite paket nema SAM 2 — koristi `--mask-file`/poligon ili instaliraj ML stack |
 | macOS blokira | `xattr -dr com.apple.quarantine ~/lampcutter` |
+| macOS: `No module named lampcutter` posle `uv sync` | `chflags nohidden .venv/lib/python3.12/site-packages/*.pth` (skriveni `.pth` se preskače) |
 | Sporo pokretanje GUI-ja | prvi start učitava Qt; sledeći su brži |

@@ -1,0 +1,178 @@
+{
+  "environment": {
+    "generated_at": "2026-11-03T19:13:29.030297+00:00",
+    "python": "3.12.14",
+    "platform": "macOS-27.2-arm64-arm-64bit",
+    "machine": "arm64",
+    "processor": "arm",
+    "cpu_count": 15,
+    "ram_gb": 24.0,
+    "torch_available": true,
+    "torch": "2.14.1",
+    "cuda_available": false,
+    "mps_available": true
+  },
+  "device": "mps",
+  "variants": [
+    {
+      "variant": "tiny",
+      "resolved_variant": "tiny",
+      "device": "mps",
+      "resolved_device": "mps",
+      "load_s": 3.191755167004885,
+      "images": [
+        {
+          "image": "tests/data/figura8.png",
+          "set_image_s": 1.605804958002409,
+          "predict_s_mean": 1.6614852499963793,
+          "predict_s_min": 0.009759374996065162,
+          "score": 0.9949890971183777,
+          "peak_vram_mb": 249.636962890625,
+          "mean_edge_deviation_mm": 0.17890083360242412,
+          "hausdorff95_mm": 0.36036036036036034
+        },
+        {
+          "image": "tests/data/ploca.png",
+          "set_image_s": 0.12427616599597968,
+          "predict_s_mean": 0.05871413866407238,
+          "predict_s_min": 0.007940458002849482,
+          "score": 0.9854065179824829,
+          "peak_vram_mb": 249.636962890625,
+          "mean_edge_deviation_mm": 0.24395597353577614,
+          "hausdorff95_mm": 0.41191864013671875
+        },
+        {
+          "image": "tests/data/srce.png",
+          "set_image_s": 0.008222375006880611,
+          "predict_s_mean": 0.036284069336640336,
+          "predict_s_min": 0.007870166009524837,
+          "score": 0.9937217831611633,
+          "peak_vram_mb": 249.636962890625,
+          "mean_edge_deviation_mm": 0.1707860686938757,
+          "hausdorff95_mm": 0.49627791563275436
+        }
+      ],
+      "peak_ram_mb": 850.703125
+    },
+    {
+      "variant": "small",
+      "resolved_variant": "small",
+      "device": "mps",
+      "resolved_device": "mps",
+      "load_s": 0.24056737500359304,
+      "images": [
+        {
+          "image": "tests/data/figura8.png",
+          "set_image_s": 0.009934333007549867,
+          "predict_s_mean": 0.04357694433322953,
+          "predict_s_min": 0.006652249998296611,
+          "score": 0.994583785533905,
+          "peak_vram_mb": 279.713134765625,
+          "mean_edge_deviation_mm": 0.207239496815312,
+          "hausdorff95_mm": 0.3958377322635135
+        },
+        {
+          "image": "tests/data/ploca.png",
+          "set_image_s": 0.007783833003486507,
+          "predict_s_mean": 0.039571874998121835,
+          "predict_s_min": 0.006297207990428433,
+          "score": 0.9857423305511475,
+          "peak_vram_mb": 279.713134765625,
+          "mean_edge_deviation_mm": 0.23079713433980942,
+          "hausdorff95_mm": 0.375
+        },
+        {
+          "image": "tests/data/srce.png",
+          "set_image_s": 0.008174207992851734,
+          "predict_s_mean": 0.03929947266685,
+          "predict_s_min": 0.006818708992796019,
+          "score": 0.9953136444091797,
+          "peak_vram_mb": 279.713134765625,
+          "mean_edge_deviation_mm": 0.2039338681597272,
+          "hausdorff95_mm": 0.49627791563275436
+        }
+      ],
+      "peak_ram_mb": 868.828125
+    },
+    {
+      "variant": "base_plus",
+      "resolved_variant": "base_plus",
+      "device": "mps",
+      "resolved_device": "mps",
+      "load_s": 0.3108852500008652,
+      "images": [
+        {
+          "image": "tests/data/figura8.png",
+          "set_image_s": 1.5699947500106646,
+          "predict_s_mean": 0.012667319664615206,
+          "predict_s_min": 0.007747458992525935,
+          "score": 0.9977499842643738,
+          "peak_vram_mb": 432.701904296875,
+          "mean_edge_deviation_mm": 0.21735166644190881,
+          "hausdorff95_mm": 0.3958377322635135
+        },
+        {
+          "image": "tests/data/ploca.png",
+          "set_image_s": 0.016584541997872293,
+          "predict_s_mean": 0.08754443066330471,
+          "predict_s_min": 0.007111458005965687,
+          "score": 0.9771836996078491,
+          "peak_vram_mb": 432.701904296875,
+          "mean_edge_deviation_mm": 3.3482306823134422,
+          "hausdorff95_mm": 19.491511344909668
+        },
+        {
+          "image": "tests/data/srce.png",
+          "set_image_s": 0.014216249997843988,
+          "predict_s_mean": 0.08692951400007587,
+          "predict_s_min": 0.007533042007707991,
+          "score": 0.9959301352500916,
+          "peak_vram_mb": 432.701904296875,
+          "mean_edge_deviation_mm": 0.28060319701731945,
+          "hausdorff95_mm": 0.49627791563275436
+        }
+      ],
+      "peak_ram_mb": 1257.96875
+    },
+    {
+      "variant": "large",
+      "resolved_variant": "large",
+      "device": "mps",
+      "resolved_device": "mps",
+      "load_s": 0.6291088750003837,
+      "images": [
+        {
+          "image": "tests/data/figura8.png",
+          "set_image_s": 0.21137283400457818,
+          "predict_s_mean": 0.14063994433187568,
+          "predict_s_min": 0.006454666989156976,
+          "score": 0.9971083998680115,
+          "peak_vram_mb": 1013.045654296875,
+          "mean_edge_deviation_mm": 0.21266769718479464,
+          "hausdorff95_mm": 0.3958377322635135
+        },
+        {
+          "image": "tests/data/ploca.png",
+          "set_image_s": 0.011862332990858704,
+          "predict_s_mean": 0.1399246246680074,
+          "predict_s_min": 0.006719625002006069,
+          "score": 0.9762880802154541,
+          "peak_vram_mb": 1012.545654296875,
+          "mean_edge_deviation_mm": 0.9977531097829342,
+          "hausdorff95_mm": 12.1875
+        },
+        {
+          "image": "tests/data/srce.png",
+          "set_image_s": 0.011994125001365319,
+          "predict_s_mean": 0.14055538899750294,
+          "predict_s_min": 0.007066374993883073,
+          "score": 0.997063934803009,
+          "peak_vram_mb": 1012.545654296875,
+          "mean_edge_deviation_mm": 0.14341442519914424,
+          "hausdorff95_mm": 0.49627791563275436
+        }
+      ],
+      "peak_ram_mb": 2293.640625
+    }
+  ]
+}

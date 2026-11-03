@@ -481,17 +481,15 @@ Izlaz u `./izlaz`: `lamp_cut.svg`, `photo_*.png`, `decor_*.png`, `print_sheet.pn
 ## 11. Hardver, modeli i rad bez interneta
 
 ### 11.1 Izbor modela
-Enkoder SAM 2 uvek radi na 1024 x 1024; smanjenje `max_side_px` ne smanjuje VRAM. Varijanta zavisi od uređaja (PROVIZORNO do benchmarka):
+Enkoder SAM 2 uvek radi na 1024 x 1024; smanjenje `max_side_px` ne smanjuje VRAM. Varijanta zavisi od uređaja — **potvrđeno benchmarkom** (CPU 16 jezgara, CUDA RTX 3050 4 GB, Apple M5 Pro 24 GB; `docs/benchmark/POREDJENJE-PLATFORMI.md`):
 
 | Uređaj | Podrazumevana | Dozvoljene | Napomena |
 |---|---|---|---|
-| RTX 3050 (4 GB) | `small` | `tiny`, `base_plus` (uz OOM lanac) | `large` isključen ispod ~8 GB; autocast bf16/fp16 |
-| NVIDIA 6-8 GB | `base_plus` | do `large` | |
-| NVIDIA 8 GB+ | `large` | sve | |
-| Apple Silicon (MPS) | `base_plus` | `tiny`..`large` zavisno od RAM-a | fallback varijabla, float32, testirati rano |
-| CPU | `tiny` ili `small` | | rezerva |
-
-CUDA postoji samo na Windows/Linux; Mac koristi MPS. Pretpostavka: Mac za razvoj/rad, NVIDIA računar za brzu obradu.
+| RTX 3050 (4 GB) | `small` | `tiny`..`large` (OOM lanac) | `large` staje: 1451 MB VRAM; bf16/autocast nije testiran |
+| NVIDIA 6-8 GB | `base_plus` | do `large` | nije testirano na hardveru |
+| NVIDIA 8 GB+ | `large` | sve | nije testirano na hardveru |
+| Apple Silicon (MPS) | `base_plus` | `tiny`..`large` | M5 Pro 24 GB: `large` 1013 MB; 0 fallback upozorenja; prvi poziv +~5 s |
+| CPU | `tiny` | `tiny`, `small` | `small` end-to-end 3,5 s (cilj < 15 s ispunjen) |
 
 ### 11.2 Benchmark (`scripts/benchmark.py`)
 Za svaku varijantu i uređaj meri: vreme `set_image`, vreme `predict`, vršnu potrošnju VRAM-a/RAM-a, odstupanje ivice (8.x metrika iz odeljka 13.2). **Rezultati određuju konačne podrazumevane vrednosti iz 11.1.** Dok benchmark nije izvršen, u `config.py` stoji `small` kao bezbedan izbor.

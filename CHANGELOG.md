@@ -36,6 +36,16 @@ Format: Keep a Changelog. Faze iz `LAMPCUTTER_SPEC.md` (odeljak 16).
 
 ## v0.5.0 — ručna četkica (2026-11-03)
 
+### Benchmark — Mac M5 Pro (MPS, 24 GB)
+
+- Rezultati u [docs/benchmark/2026-11-03-mac-m5-pro.md](docs/benchmark/2026-11-03-mac-m5-pro.md)
+  (+ JSON) i dopunjena tabela [POREDJENJE-PLATFORMI](docs/benchmark/POREDJENJE-PLATFORMI.md):
+  `set_image` 0,01–0,08 s, `predict` 0,04–0,14 s, `large` 1013 MB, 0 MPS
+  fallback upozorenja; end-to-end < 3 s (osim prvog MPS poziva +~5 s).
+- Spec 11.1 ažuriran (potvrđene podrazumevane varijante po uređaju; `large`
+  staje u 4 GB CUDA VRAM i na MPS).
+- macOS napomena: skriveni `.pth` posle `uv sync` → `chflags nohidden`.
+
 ### Dodato — v1.1 (ručna četkica)
 
 - `mask_ops.paint_stroke`: okrugla četkica duž poteza, dodaje (`add=True`) ili
