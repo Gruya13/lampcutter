@@ -15,6 +15,14 @@ maska (`--mask-file`, SAM 2 tačka/okvir ili ručni poligon), čišćenje maske,
 skala u mm, vektorizacija, edge inset, kerf kompenzacija, SVG za LightBurn i
 debug izlazi.
 
+**Faza 2 (završena):** GUI kostur u PySide6 — `QGraphicsView` platno (slika,
+maska, kontura, slotovi, dekor), zum točkićem i pan srednjim tasterom, interaktivni
+prompt (levi klik pozitivna, desni negativna tačka, prevlačenje okvir), poligon
+alat, paneli (Veličina, Materijal, Postolje, Kontura, Elementi), pozadinski
+	extit{workers} sa generacijama za odbacivanje zastarelih rezultata i debounce
+predikcije. Pokretanje: `lampcutter gui [slika]`. Test set Faze 2: 37 testova
+(offscreen).
+
 **Faza 1 (završena):** slotovi za fotografije proizvoljnog oblika (`PhotoSlot`),
 dekor (`DecorElement`, izdvajanje pragom/bojom u zoni ili SAM maskom), režimi
 `engrave`/`print`/`none`, `print_sheet.png` 1:1 sa registracionim oznakama,
@@ -25,8 +33,8 @@ početak. Test set Faze 1: 42 testa.
 **Faza 0b (završena):** jezičak i prorez baze (spec 8.3) sa zazorom i
 upozorenjima, kalibracija kerfa (`lampcutter calibrate`), `PipelineCache` (faze
 S1–S6), `refine_edge` za stvarne fotografije i benchmark (CPU + CUDA; Mac MPS se
-čeka). Zaključani test setovi: Faza 0a 38, Faza 0b 37, Faza 1 42 — ukupno 117
-testova, svi prolaze. Fizička provera (LightBurn uvoz, probni rez, naleganje jezička) je na
+čeka). Zaključani test setovi: Faza 0a 38, Faza 0b 37, Faza 1 42, Faza 2 37 —
+ukupno 154 testa, svi prolaze. Fizička provera (LightBurn uvoz, probni rez, naleganje jezička) je na
 korisniku kad bude imao vremena.
 
 **Faza E (odložena):** čeka 2–3 stvarne fotografije upaljene lampe i 2–3 mockupa
@@ -45,6 +53,7 @@ uv run ruff check .        # lint
 uv run python scripts/run_cases.py tests/cases/phase0a.json   # test set 0a
 uv run python scripts/run_cases.py tests/cases/phase0b.json   # test set 0b
 uv run python scripts/run_cases.py tests/cases/phase1.json    # test set 1
+QT_QPA_PLATFORM=offscreen uv run python scripts/run_cases.py tests/cases/phase2.json  # test set 2 (GUI)
 ```
 
 Ciljna Python verzija je 3.12 (zbog PyTorch/SAM 2).
@@ -64,6 +73,16 @@ uv run lampcutter run slika.jpg --point 820,540 --point 300,900:neg \
 Izlaz: `lamp_cut.svg` (mm, sloj `cut-outer` u `#FF0000`). Debug:
 `mask_raw.png`, `mask_clean.png`, `overlay.png`, `contour_preview.svg`.
 `--base` dodaje jezičak i ispisuje zazor prema profilu baze.
+
+## GUI
+
+```bash
+uv pip install PySide6==6.12.0               # GUI zavisnost (nije u locku)
+uv run --no-sync lampcutter gui [slika.png]   # tamna tema (--theme light za svetlu)
+```
+
+GUI je kostur Faze 2: platno sa interaktivnim promptom i poligonom, paneli i
+pozadinski izvoz. Uređivači profila, projekti i četkica su Faze 3.
 
 ## Verifikacija (za Dalibora i agente)
 

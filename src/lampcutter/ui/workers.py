@@ -12,7 +12,15 @@ import traceback
 from collections.abc import Callable
 from typing import Any
 
-from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, Signal, Slot
+from PySide6.QtCore import (
+    QCoreApplication,
+    QObject,
+    QRunnable,
+    QThreadPool,
+    QTimer,
+    Signal,
+    Slot,
+)
 
 from lampcutter.ui.tools import GenerationCounter
 
@@ -34,17 +42,25 @@ class Task(QRunnable):
         function: Callable[..., Any],
         args: tuple[Any, ...] = (),
         kwargs: dict[str, Any] | None = None,
+        provide_progress: bool = False,
     ) -> None:
         super().__init__()
         self.generation = generation
         self.function = function
         self.args = args
         self.kwargs = kwargs or {}
+        self.provide_progress = provide_progress
         self.signals = WorkerSignals()
+
+    def _progress(self, stage: str, fraction: float) -> None:
+        """Progress callback handed to the task, safe to call from any thread."""
+        self.signals.progress.emit(stage, float(fraction))
 
     @Slot()
     def run(self) -> None:
         try:
+            if self.provide_progress:
+                self.kwargs.setdefault("progress", self._progress)
             result = self.function(*self.args, **self.kwargs)
         except Exception as error:  # reported to the UI thread
             detail = f"{type(error).__name__}: {error}"
@@ -83,7 +99,13 @@ class TaskRunner(QObject):
         self._on_finished = on_finished
         self._on_failed = on_failed
         self._on_progress = on_progress
-        task = Task(generation, function, args, kwargs)
+        task = Task(
+            generation,
+            function,
+            args,
+            kwargs,
+            provide_progress=on_progress is not None,
+        )
         task.signals.finished.connect(self._handle_finished)
         task.signals.failed.connect(self._handle_failed)
         task.signals.progress.connect(self._handle_progress)
@@ -116,8 +138,16 @@ class TaskRunner(QObject):
         self.generations.next()
 
     def wait(self, timeout_ms: int = 5000) -> bool:
-        """Block until the pool is idle (used by tests and shutdown)."""
-        return self.pool.waitForDone(timeout_ms)
+        """Block until the pool is idle and deliver pending queued results.
+
+        Worker signals are queued into the UI thread; processing the pending
+        events here is what makes the finished/failed callbacks observable for
+        a caller that blocks on `wait()` (tests and application shutdown).
+        """
+        done = self.pool.waitForDone(timeout_ms)
+        QCoreApplication.processEvents()
+        QCoreApplication.processEvents()
+        return done
 
 
 class Debouncer(QObject):

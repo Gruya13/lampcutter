@@ -10,7 +10,6 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
     QMainWindow,
-    QMessageBox,
     QProgressBar,
     QPushButton,
     QSplitter,
@@ -46,6 +45,7 @@ class MainWindow(QMainWindow):
 
         self.image_path: Path | None = None
         self.last_result: PipelineResult | None = None
+        self.last_error: str | None = None
         self._cancel_requested = False
 
         self.canvas = Canvas()
@@ -272,7 +272,6 @@ class MainWindow(QMainWindow):
     def _on_failed(self, message: str) -> None:
         self.progress.setValue(0)
         self.cancel_button.setEnabled(False)
-        self.statusBar().showMessage(f"Greška: {message}")
         self._show_error(message)
 
     def export(self) -> None:
@@ -296,7 +295,14 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"Element {element_id}: režim {mode} (čuva se u Fazi 3)")
 
     def _show_error(self, message: str) -> None:
-        QMessageBox.warning(self, "Greška", message)
+        """Report an error through the status bar.
+
+        A modal dialog would block headless tests and a background export; the
+        error is kept on `last_error` for callers and the UI shows it in the
+        status bar instead.
+        """
+        self.last_error = message
+        self.statusBar().showMessage(f"Greška: {message}")
 
     # -------------------------------------------------------------- drag&drop
     def dragEnterEvent(self, event) -> None:

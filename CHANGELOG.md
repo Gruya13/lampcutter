@@ -34,6 +34,23 @@ Format: Keep a Changelog. Faze iz `LAMPCUTTER_SPEC.md` (odeljak 16).
   `scripts/run_cases.py` i API ugovor `docs/api-phase0a.md`.
 - GitHub: privatni repo kao `main`; lokalni repo je staging.
 
+### Dodato — Faza 2
+
+- `ui/tools.py` (Qt-free): `ViewTransform` (zum/pan matematički, `zoom_at` čuva
+  tačku pod kursorom), `PromptBuilder` (pozitivne/negativne tačke, okvir, undo),
+  `PolygonTool`, `GenerationCounter`.
+- `ui/workers.py`: `TaskRunner` (`QThreadPool`, generacije — zastareli rezultati
+  se odbacuju, `wait()` isporučuje queued rezultate, progress injekcija),
+  `Debouncer` (150 ms za predikciju).
+- `ui/canvas.py`: `QGraphicsView` platno — slika (EXIF), poluprozirna maska,
+  kontura/slotovi/dekor u mm, zum točkićem, pan srednjim tasterom, prompt
+  (L/R klik, drag okvir), poligon alat, undo.
+- `ui/panels.py`: Veličina (mm/cm, S/M/L, izračunato), Materijal, Postolje
+  (profili + zazor), Kontura, Elementi (slotovi/dekor sa režimom).
+- `ui/main_window.py`: splitter, meni, drag&drop, pozadinski izvoz, otkazivanje,
+  status; `ui/app.py` + `ui/theme.py` (tamna/svetla tema) i `lampcutter gui`.
+- Zaključan test set Faze 2 (37 testova, autor agy, offscreen); ukupno 154 testa.
+
 ### Dodato — Faza 1
 
 - `core/slots.py`: GeoJSON serijalizacija konture, slotova, dekora i celog

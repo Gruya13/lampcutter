@@ -7,6 +7,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -16,13 +18,16 @@ jobs:
         with:
           node-version: "22"
       - name: Instaliraj zavisnosti
-        run: uv sync --group dev
+        run: |
+          uv sync --group dev
+          uv pip install "PySide6==6.12.0" "pytest-qt==4.5.0"
       - name: Lint
         run: |
-          uv run ruff check .
-          uv run ruff format --check src scripts
+          uv run --no-sync ruff check .
+          uv run --no-sync ruff format --check src scripts
       - name: Zaključani test setovi (mreža blokirana)
         run: |
-          for suite in phase0a phase0b phase1; do
-            uv run python scripts/run_cases.py "tests/cases/$suite.json" -- --disable-socket --allow-unix-socket
+          for suite in phase0a phase0b phase1 phase2; do
+            uv run --no-sync python scripts/run_cases.py "tests/cases/$suite.json" \
+                -- --disable-socket --allow-unix-socket
           done
