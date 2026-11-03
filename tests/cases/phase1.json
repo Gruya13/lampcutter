@@ -1,0 +1,136 @@
+{
+  "schema": 1,
+  "suite": "phase1",
+  "author": "agy",
+  "source": "wiki:.wiki/shared/artifacts/tests-phase1.py",
+  "entry": "test_phase1_spec.py",
+  "cases": [
+    {
+      "id": "test_config_phase1_defaults"
+    },
+    {
+      "id": "test_config_phase1_validations"
+    },
+    {
+      "id": "test_slots_round_polygon"
+    },
+    {
+      "id": "test_slots_polygon_geojson_roundtrip"
+    },
+    {
+      "id": "test_slots_slot_geojson_roundtrip"
+    },
+    {
+      "id": "test_slots_decor_geojson_roundtrip"
+    },
+    {
+      "id": "test_slots_template_geojson_roundtrip"
+    },
+    {
+      "id": "test_slots_template_schema_validation"
+    },
+    {
+      "id": "test_slots_save_and_load_template_file"
+    },
+    {
+      "id": "test_validate_slot_mask_valid"
+    },
+    {
+      "id": "test_validate_slot_mask_empty"
+    },
+    {
+      "id": "test_validate_slot_mask_too_small"
+    },
+    {
+      "id": "test_validate_slot_mask_low_solidity"
+    },
+    {
+      "id": "test_validate_slot_mask_overlap"
+    },
+    {
+      "id": "test_decor_crop_zone"
+    },
+    {
+      "id": "test_decor_threshold_mask_luminance"
+    },
+    {
+      "id": "test_decor_threshold_mask_color_and_errors"
+    },
+    {
+      "id": "test_decor_threshold_mask_empty_zone_raises"
+    },
+    {
+      "id": "test_decor_from_threshold_synthetic"
+    },
+    {
+      "id": "test_decor_engrave_vs_print_filtering"
+    },
+    {
+      "id": "test_decor_validate_in_outline_and_margin"
+    },
+    {
+      "id": "test_decor_warnings_thin_feature"
+    },
+    {
+      "id": "test_compose_alignment_with_svg_writer"
+    },
+    {
+      "id": "test_compose_mm_px_conversions"
+    },
+    {
+      "id": "test_compose_registration_mark_positions"
+    },
+    {
+      "id": "test_compose_slot_bbox_and_px_size"
+    },
+    {
+      "id": "test_compose_slot_alpha"
+    },
+    {
+      "id": "test_fit_photo_cover_no_gaps"
+    },
+    {
+      "id": "test_fit_photo_contain"
+    },
+    {
+      "id": "test_fit_photo_zoom"
+    },
+    {
+      "id": "test_fit_photo_rotation"
+    },
+    {
+      "id": "test_fit_photo_errors"
+    },
+    {
+      "id": "test_effective_dpi_calculation"
+    },
+    {
+      "id": "test_render_photo_slot"
+    },
+    {
+      "id": "test_slots_effective_dpi"
+    },
+    {
+      "id": "test_render_decor_png"
+    },
+    {
+      "id": "test_render_print_sheet_rgba_and_size"
+    },
+    {
+      "id": "test_render_print_sheet_print_orders"
+    },
+    {
+      "id": "test_render_print_sheet_registration_marks"
+    },
+    {
+      "id": "test_manifest_dict_structure"
+    },
+    {
+      "id": "test_export_bundle_files_and_warnings"
+    },
+    {
+      "id": "test_svg_export_engrave_layer_no_kerf_and_no_print"
+    }
+  ],
+  "source_text": "\"\"\"\nNezavisan test set za Fazu 1 — Lampcutter\nAutor: agy (verifikaciona nit / crveni tim)\nIzvori istine: LAMPCUTTER_SPEC.md (9.1–9.4, 13.1) i docs/api-phase1.md\n\"\"\"\nimport json\nimport math\nimport pathlib\nimport xml.etree.ElementTree as ET\nimport numpy as np\nfrom PIL import Image\nimport pytest\nimport shapely\nimport shapely.ops\nfrom shapely.geometry import box, Polygon, MultiPolygon, Point\n\nfrom lampcutter.config import Config\nfrom lampcutter.models import (\n    Prompt,\n    SegmentationResult,\n    ScaleInfo,\n    MaterialProfile,\n    BaseProfile,\n    CutGeometry,\n    PhotoSlot,\n    DecorElement,\n    LampTemplate,\n)\nfrom lampcutter.core import (\n    slots,\n    decor,\n    compose,\n    svg_writer,\n    geometry,\n)\n\n\ndef make_dummy_template(tmp_path=None, photo_size=(600, 600)):\n    nominal = box(10.0, 10.0, 110.0, 110.0)\n    mat = MaterialProfile(id=\"acrylic-3\", name=\"Akril 3mm\", thickness_mm=3.0, kerf_mm=0.2, min_feature_mm=1.5)\n    cut_geom = geometry.compute_cut_geometry(nominal, mat, kerf_mode=\"app\")\n    base = BaseProfile(id=\"oval\", name=\"Oval\", slot_length_mm=80.0, slot_thickness_mm=3.2, tab_width_mm=60.0, tab_height_mm=10.0)\n    scale_info = ScaleInfo(mm_per_px=0.1, reference=\"height\", reference_mm=100.0, bbox_px=(100, 100, 1100, 1100))\n\n    photo_path = None\n    if tmp_path is not None:\n        photo_path = tmp_path / \"test_photo.png\"\n        Image.new(\"RGB\", photo_size, color=(200, 40, 40)).save(photo_path)\n\n    slot = PhotoSlot(\n        id=\"slot_1\",\n        polygon_mm=box(30.0, 30.0, 70.0, 70.0),\n        source=\"detected\",\n        image_path=photo_path,\n        fit=\"cover\",\n        zoom=1.0,\n        bleed_mm=0.3,\n    )\n    decor_elem = DecorElement(\n        id=\"decor_1\",\n        polygon_mm=box(35.0, 75.0, 55.0, 95.0),\n        source=\"threshold\",\n        mode=\"engrave\",\n        engrave_style=\"line\",\n    )\n    return LampTemplate(\n        outline=cut_geom,\n        slots=[slot],\n        decor=[decor_elem],\n        base=base,\n        material=mat,\n        scale=scale_info,\n        input_kind=\"mockup\",\n    )\n\n\n# ============================================================================\n# 1. Config (Faza 1)\n# ============================================================================\n\ndef test_config_phase1_defaults():\n    cfg = Config()\n    assert cfg.print_order == \"cut_then_print\"\n    assert cfg.slot_photo_min_dpi == pytest.approx(150.0)\n    assert cfg.decor_ink_color == \"#000000\"\n    assert cfg.registration_mark_size_mm == pytest.approx(5.0)\n    assert cfg.registration_mark_offset_mm == pytest.approx(5.0)\n    assert cfg.registration_mark_circle_radius_mm == pytest.approx(1.0)\n    assert cfg.slot_solidity_min == pytest.approx(0.5)\n    assert cfg.slot_overlap_max == pytest.approx(0.1)\n    assert cfg.slot_min_area_mm2 == pytest.approx(50.0)\n    assert cfg.decor_upsample == 2\n\ndef test_config_phase1_validations():\n    with pytest.raises(ValueError):\n        Config(print_order=\"invalid_order\")\n    with pytest.raises(ValueError):\n        Config(slot_solidity_min=0.0)\n    with pytest.raises(ValueError):\n        Config(slot_solidity_min=1.5)\n    with pytest.raises(ValueError):\n        Config(slot_overlap_max=-0.1)\n    with pytest.raises(ValueError):\n        Config(slot_overlap_max=1.2)\n    with pytest.raises(ValueError):\n        Config(slot_min_area_mm2=0.0)\n\n\n# ============================================================================\n# 2. Serijalizacija i GeoJSON (spec 5, 9.2)\n# ============================================================================\n\ndef test_slots_round_polygon():\n    poly = Polygon([(0.123456, 0.654321), (10.0001, 0.0), (10.0, 10.0), (0.0, 10.0)])\n    rounded = slots.round_polygon(poly, decimals=3)\n    coords = list(rounded.exterior.coords)\n    assert coords[0][0] == pytest.approx(0.123, abs=1e-5)\n    assert coords[0][1] == pytest.approx(0.654, abs=1e-5)\n\ndef test_slots_polygon_geojson_roundtrip():\n    poly = box(15.1234, 25.5678, 85.9123, 95.4321)\n    data = slots.polygon_to_geojson(poly, decimals=3)\n    assert data[\"type\"] == \"Polygon\"\n    restored = slots.polygon_from_geojson(data)\n    assert restored.is_valid is True\n    assert restored.bounds[0] == pytest.approx(poly.bounds[0], abs=0.001)\n    assert restored.bounds[1] == pytest.approx(poly.bounds[1], abs=0.001)\n    assert restored.bounds[2] == pytest.approx(poly.bounds[2], abs=0.001)\n    assert restored.bounds[3] == pytest.approx(poly.bounds[3], abs=0.001)\n\ndef test_slots_slot_geojson_roundtrip():\n    slot = PhotoSlot(\n        id=\"slot_heart\",\n        polygon_mm=box(20.0, 20.0, 60.0, 60.0),\n        source=\"manual\",\n        image_path=pathlib.Path(\"/tmp/pic.png\"),\n        fit=\"contain\",\n        zoom=1.25,\n        offset_mm=(2.0, -1.5),\n        rotation_deg=45.0,\n        bleed_mm=0.5,\n    )\n    d = slots.slot_to_geojson(slot)\n    assert d[\"id\"] == \"slot_heart\"\n    assert d[\"fit\"] == \"contain\"\n    restored = slots.slot_from_geojson(d)\n    assert restored.id == slot.id\n    assert restored.fit == slot.fit\n    assert restored.zoom == pytest.approx(1.25)\n    assert restored.offset_mm == pytest.approx((2.0, -1.5))\n    assert restored.rotation_deg == pytest.approx(45.0)\n    assert restored.polygon_mm.bounds == pytest.approx(slot.polygon_mm.bounds, abs=0.001)\n\ndef test_slots_decor_geojson_roundtrip():\n    elem = DecorElement(\n        id=\"rose_1\",\n        polygon_mm=box(30.0, 30.0, 50.0, 50.0),\n        source=\"sam_click\",\n        mode=\"print\",\n        engrave_style=\"fill\",\n        color_override=\"#112233\",\n    )\n    d = slots.decor_to_geojson(elem)\n    restored = slots.decor_from_geojson(d)\n    assert restored.id == \"rose_1\"\n    assert restored.mode == \"print\"\n    assert restored.color_override == \"#112233\"\n    assert restored.polygon_mm.bounds == pytest.approx(elem.polygon_mm.bounds, abs=0.001)\n\ndef test_slots_template_geojson_roundtrip():\n    tpl = make_dummy_template()\n    data = slots.template_to_geojson(tpl)\n    assert data[\"schema\"] == slots.SCHEMA_VERSION\n    assert \"outline\" in data and \"slots\" in data and \"decor\" in data\n    restored = slots.template_from_geojson(data)\n    assert restored.input_kind == tpl.input_kind\n    assert len(restored.slots) == len(tpl.slots)\n    assert len(restored.decor) == len(tpl.decor)\n    assert restored.material.id == tpl.material.id\n    assert restored.base.id == tpl.base.id\n    # Round-trip tolerancija 0.001 mm\n    assert restored.outline.nominal.bounds == pytest.approx(tpl.outline.nominal.bounds, abs=0.001)\n\ndef test_slots_template_schema_validation():\n    tpl = make_dummy_template()\n    data = slots.template_to_geojson(tpl)\n    data[\"schema\"] = 999\n    with pytest.raises(ValueError):\n        slots.template_from_geojson(data)\n\ndef test_slots_save_and_load_template_file(tmp_path):\n    tpl = make_dummy_template(tmp_path)\n    file_path = tmp_path / \"lamp.lamptpl\"\n    saved = slots.save_template(tpl, file_path)\n    assert saved.exists()\n    loaded = slots.load_template(file_path)\n    assert len(loaded.slots) == 1\n    assert loaded.slots[0].id == \"slot_1\"\n    assert loaded.outline.nominal.bounds == pytest.approx(tpl.outline.nominal.bounds, abs=0.001)\n\n## 2026-11-03T11:36:21.945Z — agy\n\n\n\n# ============================================================================\n# 3. Validacija slota: \"Pobegao klik\" (spec 7.3, contract 28)\n# ============================================================================\n\ndef test_validate_slot_mask_valid():\n    mask = np.zeros((1000, 1000), dtype=bool)\n    mask[200:600, 200:600] = True\n    warnings = slots.validate_slot_mask(mask, mm_per_px=0.1)\n    assert warnings == []\n\ndef test_validate_slot_mask_empty():\n    mask = np.zeros((500, 500), dtype=bool)\n    warnings = slots.validate_slot_mask(mask, mm_per_px=0.1)\n    assert \"maska je prazna\" in warnings\n\ndef test_validate_slot_mask_too_small():\n    mask = np.zeros((500, 500), dtype=bool)\n    mask[100:105, 100:105] = True\n    warnings = slots.validate_slot_mask(mask, mm_per_px=0.1)\n    assert len(warnings) > 0\n    assert any(\"površina\" in w.lower() or \"mala\" in w.lower() or \"area\" in w.lower() for w in warnings)\n\ndef test_validate_slot_mask_low_solidity():\n    mask = np.zeros((600, 600), dtype=bool)\n    mask[200:400, 200:400] = True\n    mask[210:390, 210:390] = False\n    warnings = slots.validate_slot_mask(mask, mm_per_px=0.1)\n    assert any(\"solidnost\" in w.lower() or \"solidity\" in w.lower() or \"oblik\" in w.lower() for w in warnings)\n\ndef test_validate_slot_mask_overlap():\n    existing = [PhotoSlot(id=\"s0\", polygon_mm=box(20.0, 20.0, 60.0, 60.0), source=\"detected\")]\n    mask = np.zeros((1000, 1000), dtype=bool)\n    mask[250:600, 250:600] = True\n    warnings = slots.validate_slot_mask(mask, mm_per_px=0.1, existing_slots=existing)\n    assert any(\"preklap\" in w.lower() or \"overlap\" in w.lower() for w in warnings)\n\n# ============================================================================\n# 4. Dekor: Zone i pragovi (spec 9.1, 9.3)\n# ============================================================================\n\ndef test_decor_crop_zone():\n    img = np.zeros((400, 400, 3), dtype=np.uint8)\n    img[100:250, 100:300] = 128\n    zone = (100, 100, 300, 250)\n    cropped = decor.crop_zone(img, zone)\n    assert cropped.shape == (150, 200, 3)\n\ndef test_decor_threshold_mask_luminance():\n    img = np.ones((300, 300, 3), dtype=np.uint8) * 240\n    img[100:200, 100:200] = 20\n    zone = (50, 50, 250, 250)\n    mask, th = decor.threshold_mask(img, zone, mode=\"luminance\")\n    assert mask.shape == (200, 200) and mask.dtype == bool\n    assert mask[75, 75] == True and mask[10, 10] == False\n    assert 0 < th < 255\n\ndef test_decor_threshold_mask_color_and_errors():\n    img = np.ones((200, 200, 3), dtype=np.uint8) * 200\n    img[50:150, 50:150] = [10, 10, 250]\n    zone = (20, 20, 180, 180)\n    mask, _ = decor.threshold_mask(img, zone, mode=\"color\")\n    assert mask.shape == (160, 160)\n    with pytest.raises(ValueError):\n        decor.threshold_mask(img, zone, mode=\"invalid_mode\")\n\ndef test_decor_threshold_mask_empty_zone_raises():\n    img = np.zeros((100, 100, 3), dtype=np.uint8)\n    with pytest.raises(ValueError):\n        decor.threshold_mask(img, (50, 50, 50, 80))\n    with pytest.raises(ValueError):\n        decor.threshold_mask(img, (20, 80, 80, 50))\n\n\n## 2026-11-03T11:36:56.563Z — agy\n\n\n\n# ============================================================================\n# 5. Dekor: Izdvajanje, modovi i poravnanje (spec 9.1, 9.3)\n# ============================================================================\n\ndef test_decor_from_threshold_synthetic():\n    img = np.ones((1000, 1000, 3), dtype=np.uint8) * 240\n    img[400:600, 300:500] = 10\n    zone = (250, 350, 550, 650)\n    scale_info = ScaleInfo(mm_per_px=0.1, reference=\"height\", reference_mm=100.0, bbox_px=(0, 0, 1000, 1000))\n\n    polys = decor.decor_from_threshold(img, zone, scale_info, mode=\"luminance\")\n    assert len(polys) >= 1\n    p = polys[0]\n    assert p.is_valid is True\n    assert p.area == pytest.approx(400.0, rel=0.05)\n    minx, miny, maxx, maxy = p.bounds\n    assert minx == pytest.approx(30.0, abs=0.2)\n    assert miny == pytest.approx(40.0, abs=0.2)\n    assert maxx == pytest.approx(50.0, abs=0.2)\n    assert maxy == pytest.approx(60.0, abs=0.2)\n\ndef test_decor_engrave_vs_print_filtering():\n    e1 = DecorElement(id=\"d1\", polygon_mm=box(10, 10, 20, 20), source=\"sam_click\", mode=\"engrave\")\n    e2 = DecorElement(id=\"d2\", polygon_mm=box(30, 30, 40, 40), source=\"threshold\", mode=\"print\")\n    e3 = DecorElement(id=\"d3\", polygon_mm=box(50, 50, 60, 60), source=\"threshold\", mode=\"none\")\n    elems = [e1, e2, e3]\n\n    engraves = decor.engrave_polygons(elems)\n    assert len(engraves) == 1 and engraves[0].bounds == e1.polygon_mm.bounds\n    prints = decor.print_elements(elems)\n    assert len(prints) == 1 and prints[0].id == \"d2\"\n\ndef test_decor_validate_in_outline_and_margin():\n    outline = box(0.0, 0.0, 100.0, 100.0)\n    e_in = DecorElement(id=\"in_1\", polygon_mm=box(10.0, 10.0, 20.0, 20.0), source=\"sam_click\", mode=\"engrave\")\n    e_out = DecorElement(id=\"out_1\", polygon_mm=box(80.0, 80.0, 98.0, 98.0), source=\"sam_click\", mode=\"engrave\")\n    e_none = DecorElement(id=\"none_1\", polygon_mm=box(90.0, 90.0, 99.0, 99.0), source=\"sam_click\", mode=\"none\")\n\n    warns = decor.validate_decor_in_outline([e_in, e_out, e_none], outline, margin_mm=5.0)\n    assert any(\"out_1\" in w for w in warns)\n    assert not any(\"in_1\" in w for w in warns)\n    assert not any(\"none_1\" in w for w in warns)\n    with pytest.raises(ValueError):\n        decor.validate_decor_in_outline([e_in], outline, margin_mm=-1.0)\n\ndef test_decor_warnings_thin_feature():\n    outline = box(0.0, 0.0, 100.0, 100.0)\n    mat = MaterialProfile(id=\"m\", name=\"m\", thickness_mm=3.0, kerf_mm=0.2, min_feature_mm=2.0)\n    thin_poly = box(20.0, 20.0, 40.0, 20.5)\n    elem = DecorElement(id=\"thin_1\", polygon_mm=thin_poly, source=\"threshold\", mode=\"engrave\")\n    warns = decor.decor_warnings([elem], outline, mat, margin_mm=5.0)\n    assert len(warns) > 0\n\n# ============================================================================\n# 6. Compose: Poravnanje i konverzije (spec 13.1, contract 93)\n# ============================================================================\n\ndef test_compose_alignment_with_svg_writer():\n    tpl = make_dummy_template()\n    cfg = Config(svg_margin_mm=5.0)\n\n    s_offset = compose.sheet_offset_mm(tpl, cfg)\n    svg_offset = svg_writer.origin_offset_mm(tpl.outline, cfg)\n    assert s_offset[0] == pytest.approx(svg_offset[0], abs=0.1)\n    assert s_offset[1] == pytest.approx(svg_offset[1], abs=0.1)\n\n    s_size = compose.sheet_size_mm(tpl, cfg)\n    svg_size = svg_writer.canvas_size_mm(tpl.outline, cfg)\n    assert s_size[0] == pytest.approx(svg_size[0], abs=0.1)\n    assert s_size[1] == pytest.approx(svg_size[1], abs=0.1)\n\ndef test_compose_mm_px_conversions():\n    dpi = 300\n    assert compose.mm_to_px(25.4, dpi) == pytest.approx(300.0)\n    assert compose.px_to_mm(300.0, dpi) == pytest.approx(25.4)\n\ndef test_compose_registration_mark_positions():\n    marks = compose.registration_mark_positions(100.0, 150.0, Config(registration_mark_offset_mm=5.0))\n    assert len(marks) == 4\n    pts = [(round(m[0], 1), round(m[1], 1)) for m in marks]\n    assert (5.0, 5.0) in pts\n    assert (95.0, 145.0) in pts\n\ndef test_compose_slot_bbox_and_px_size():\n    slot = PhotoSlot(id=\"s\", polygon_mm=box(20.0, 30.0, 60.0, 70.0), source=\"manual\", bleed_mm=0.5)\n    assert compose.slot_bbox_mm(slot, bleed=False) == (20.0, 30.0, 60.0, 70.0)\n    assert compose.slot_bbox_mm(slot, bleed=True) == pytest.approx((19.5, 29.5, 60.5, 70.5), abs=0.01)\n\n    w_px, h_px = compose.slot_px_size(slot, dpi=25.4, bleed=False)\n    assert w_px == 40 and h_px == 40\n    w_b, h_b = compose.slot_px_size(slot, dpi=25.4, bleed=True)\n    assert w_b == 41 and h_b == 41\n\n\n## 2026-11-03T11:37:23.308Z — agy\n\n\n\n# ============================================================================\n# 7. Fit photo & Slot rendering (spec 9.1, 9.2)\n# ============================================================================\n\ndef test_compose_slot_alpha():\n    slot = PhotoSlot(id=\"s1\", polygon_mm=box(10.0, 10.0, 30.0, 30.0), source=\"manual\", bleed_mm=0.0)\n    alpha = compose.slot_alpha(slot, dpi=25.4)\n    assert alpha.mode == \"L\"\n    assert alpha.size == (20, 20)\n    arr = np.array(alpha)\n    assert arr[10, 10] == 255\n\ndef test_fit_photo_cover_no_gaps():\n    photo = Image.new(\"RGBA\", (200, 100), color=(100, 150, 200, 255))\n    fitted = compose.fit_photo(photo, target_size=(100, 100), fit=\"cover\")\n    assert fitted.size == (100, 100)\n    arr = np.array(fitted)\n    assert (arr[:, :, 3] == 255).all()\n\ndef test_fit_photo_contain():\n    photo = Image.new(\"RGBA\", (200, 100), color=(50, 100, 150, 255))\n    fitted = compose.fit_photo(photo, target_size=(100, 100), fit=\"contain\")\n    assert fitted.size == (100, 100)\n    arr = np.array(fitted)\n    assert arr[50, 50, 3] == 255\n    assert arr[5, 50, 3] == 0\n\ndef test_fit_photo_zoom():\n    photo = Image.new(\"RGB\", (200, 200), color=(0, 0, 0))\n    photo_arr = np.array(photo)\n    photo_arr[80:120, 80:120] = [255, 0, 0]\n    photo = Image.fromarray(photo_arr)\n\n    fitted_1 = compose.fit_photo(photo, target_size=(200, 200), fit=\"cover\", zoom=1.0)\n    arr_1 = np.array(fitted_1)\n    red_count_1 = ((arr_1[:, :, 0] > 200) & (arr_1[:, :, 1] < 50)).sum()\n\n    fitted_2 = compose.fit_photo(photo, target_size=(200, 200), fit=\"cover\", zoom=2.0)\n    arr_2 = np.array(fitted_2)\n    red_count_2 = ((arr_2[:, :, 0] > 200) & (arr_2[:, :, 1] < 50)).sum()\n    assert red_count_2 > red_count_1 * 2\n\ndef test_fit_photo_rotation():\n    photo = Image.new(\"RGB\", (100, 100), color=(0, 0, 0))\n    p_arr = np.array(photo)\n    p_arr[10:30, 40:60] = [255, 0, 0]\n    photo = Image.fromarray(p_arr)\n\n    rot = compose.fit_photo(photo, target_size=(100, 100), fit=\"cover\", rotation_deg=90.0)\n    arr = np.array(rot)\n    assert arr[20, 50, 0] < 50\n    assert (arr[:, :, 0] > 200).sum() > 0\n\ndef test_fit_photo_errors():\n    photo = Image.new(\"RGB\", (50, 50))\n    with pytest.raises(ValueError):\n        compose.fit_photo(photo, target_size=(50, 50), fit=\"stretch\")\n    with pytest.raises(ValueError):\n        compose.fit_photo(photo, target_size=(50, 50), zoom=0.0)\n    with pytest.raises(ValueError):\n        compose.fit_photo(photo, target_size=(50, 50), zoom=-1.0)\n\ndef test_effective_dpi_calculation():\n    slot = PhotoSlot(id=\"s\", polygon_mm=box(0, 0, 100, 100), source=\"manual\")\n    dpi_val = compose.effective_dpi(slot, photo_size=(100, 100))\n    assert dpi_val == pytest.approx(25.4, rel=0.05)\n\ndef test_render_photo_slot(tmp_path):\n    p_file = tmp_path / \"photo_render.png\"\n    Image.new(\"RGB\", (400, 400), color=(120, 80, 40)).save(p_file)\n    slot = PhotoSlot(id=\"s_rnd\", polygon_mm=box(10.0, 10.0, 50.0, 50.0), source=\"detected\", image_path=p_file, bleed_mm=0.0)\n\n    img, eff_dpi = compose.render_photo_slot(slot, dpi=254.0)\n    assert img.mode == \"RGBA\"\n    assert img.size == (400, 400)\n    assert eff_dpi == pytest.approx(254.0, rel=0.05)\n\ndef test_slots_effective_dpi(tmp_path):\n    tpl = make_dummy_template(tmp_path, photo_size=(100, 100))\n    dpis = compose.slots_effective_dpi(tpl)\n    assert \"slot_1\" in dpis and dpis[\"slot_1\"] > 0\n\n\n## 2026-11-03T11:37:51.794Z — agy\n\n\n\n# ============================================================================\n# 8. Print Sheet, Manifest & Export Bundle (spec 9.4, 13.1)\n# ============================================================================\n\ndef test_render_decor_png():\n    elem = DecorElement(id=\"d\", polygon_mm=box(10.0, 10.0, 30.0, 30.0), source=\"threshold\", mode=\"print\")\n    cfg = Config(decor_ink_color=\"#123456\")\n    img = compose.render_decor_png(elem, dpi=25.4, config=cfg)\n    assert img.mode == \"RGBA\"\n    assert img.size == (20, 20)\n    arr = np.array(img)\n    assert arr[10, 10, 0] == 0x12\n    assert arr[10, 10, 1] == 0x34\n    assert arr[10, 10, 2] == 0x56\n    assert arr[10, 10, 3] == 255\n\ndef test_render_print_sheet_rgba_and_size(tmp_path):\n    tpl = make_dummy_template(tmp_path)\n    cfg = Config(print_dpi=25.4)\n    sheet = compose.render_print_sheet(tpl, config=cfg)\n    assert sheet.mode == \"RGBA\"\n    expected_w_mm, expected_h_mm = compose.sheet_size_mm(tpl, cfg)\n    assert sheet.size[0] == pytest.approx(expected_w_mm, abs=1)\n    assert sheet.size[1] == pytest.approx(expected_h_mm, abs=1)\n    arr = np.array(sheet)\n    assert arr[0, 0, 3] == 0\n\ndef test_render_print_sheet_print_orders(tmp_path):\n    tpl = make_dummy_template(tmp_path)\n    cfg_cut_first = Config(print_order=\"cut_then_print\", print_dpi=25.4)\n    sheet_cut_first = compose.render_print_sheet(tpl, config=cfg_cut_first)\n    cfg_print_first = Config(print_order=\"print_then_cut\", print_dpi=25.4)\n    sheet_print_first = compose.render_print_sheet(tpl, config=cfg_print_first)\n\n    arr_cf = np.array(sheet_cut_first)\n    arr_pf = np.array(sheet_print_first)\n    assert (arr_pf[:, :, 3] > 0).sum() >= (arr_cf[:, :, 3] > 0).sum()\n\ndef test_render_print_sheet_registration_marks(tmp_path):\n    tpl = make_dummy_template(tmp_path)\n    cfg_with_marks = Config(registration_marks=True, print_dpi=25.4)\n    sheet_marks = compose.render_print_sheet(tpl, config=cfg_with_marks)\n    cfg_no_marks = Config(registration_marks=False, print_dpi=25.4)\n    sheet_no_marks = compose.render_print_sheet(tpl, config=cfg_no_marks)\n\n    arr_m = np.array(sheet_marks)\n    arr_nm = np.array(sheet_no_marks)\n    assert (arr_m[:, :, 3] > 0).sum() > (arr_nm[:, :, 3] > 0).sum()\n\ndef test_manifest_dict_structure(tmp_path):\n    tpl = make_dummy_template(tmp_path)\n    m = compose.manifest_dict(tpl, config=Config())\n    assert m[\"schema\"] == 1\n    assert \"app_version\" in m and \"generated_at\" in m\n    assert \"slots\" in m and len(m[\"slots\"]) == 1\n    assert \"decor\" in m and len(m[\"decor\"]) == 1\n    assert \"sheet_size_mm\" in m and \"origin_offset_mm\" in m\n    assert m[\"slots\"][0][\"id\"] == \"slot_1\"\n    assert \"polygon\" in m[\"slots\"][0]\n\ndef test_export_bundle_files_and_warnings(tmp_path):\n    tpl = make_dummy_template(tmp_path, photo_size=(30, 30))\n    print_decor = DecorElement(id=\"decor_p\", polygon_mm=box(20.0, 75.0, 30.0, 85.0), source=\"threshold\", mode=\"print\")\n    tpl.decor.append(print_decor)\n\n    out_dir = tmp_path / \"bundle_out\"\n    res = compose.export_bundle(tpl, out_dir, config=Config(print_dpi=100))\n\n    assert res.svg_path.exists()\n    assert res.print_sheet_path.exists()\n    assert (out_dir / \"manifest.json\").exists()\n    assert \"slot_1\" in res.photo_paths and res.photo_paths[\"slot_1\"].exists()\n    assert \"decor_p\" in res.decor_paths and res.decor_paths[\"decor_p\"].exists()\n    assert any(\"dpi\" in w.lower() for w in res.warnings)\n\ndef test_svg_export_engrave_layer_no_kerf_and_no_print(tmp_path):\n    tpl = make_dummy_template(tmp_path)\n    tpl.decor = [\n        DecorElement(id=\"engr_elem\", polygon_mm=box(30.0, 70.0, 50.0, 90.0), source=\"threshold\", mode=\"engrave\"),\n        DecorElement(id=\"print_elem\", polygon_mm=box(60.0, 70.0, 80.0, 90.0), source=\"threshold\", mode=\"print\"),\n    ]\n    out_dir = tmp_path / \"svg_test_out\"\n    res = compose.export_bundle(tpl, out_dir, config=Config())\n\n    tree = ET.parse(res.svg_path)\n    root = tree.getroot()\n    engr_groups = [el for el in root.iter() if el.tag.split(\"}\")[-1] == \"g\" and el.get(\"id\") == \"engrave\"]\n    assert len(engr_groups) == 1\n    assert engr_groups[0].get(\"stroke\") == \"#0000FF\"\n\n    all_g_ids = [el.get(\"id\") for el in root.iter() if el.get(\"id\")]\n    assert \"print_elem\" not in all_g_ids\n    assert \"print\" not in all_g_ids\n\n"
+}
