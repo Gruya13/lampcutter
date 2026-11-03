@@ -6,8 +6,8 @@
   "entry": "test_phase4_spec.py",
   "gitRel": "tests/cases/phase4.json",
   "gitState": "clean",
-  "gitRevision": "231fccb25fd01896da9bfeb94f517d4e2f71e4b5",
-  "lockedAt": "2026-11-03T13:27:46.265Z",
+  "gitRevision": "69de38a6ef7ff114d42aaec7d18facb5ed8b560d",
+  "lockedAt": "2026-11-03T14:03:26.290Z",
   "lockedBy": "agy",
   "relocks": []
 }

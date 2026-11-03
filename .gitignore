@@ -37,3 +37,4 @@ models/*
 
 # Privatni test podaci
 tests/data/private/
+.gh-cache/

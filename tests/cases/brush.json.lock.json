@@ -6,8 +6,8 @@
   "entry": "test_brush_spec.py",
   "gitRel": "tests/cases/brush.json",
   "gitState": "clean",
-  "gitRevision": "1dd64b1cee5b06c6f20f037c1b595af019f132bf",
-  "lockedAt": "2026-11-03T13:55:07.963Z",
+  "gitRevision": "69de38a6ef7ff114d42aaec7d18facb5ed8b560d",
+  "lockedAt": "2026-11-03T14:03:26.432Z",
   "lockedBy": "agy",
   "relocks": []
 }
