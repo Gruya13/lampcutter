@@ -14,7 +14,7 @@ uv run --no-sync ruff check .
 echo "== ruff format --check =="
 uv run --no-sync ruff format --check src scripts
 
-for suite in phase0a phase0b phase1 phase2 phase3 phase4; do
+for suite in phase0a phase0b phase1 phase2 phase3 phase4 brush; do
   echo "== zaključani test set $suite =="
   QT_QPA_PLATFORM=offscreen uv run --no-sync python scripts/run_cases.py "tests/cases/$suite.json" \
       -- --disable-socket --allow-unix-socket

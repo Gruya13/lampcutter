@@ -34,6 +34,21 @@ Format: Keep a Changelog. Faze iz `LAMPCUTTER_SPEC.md` (odeljak 16).
   `scripts/run_cases.py` i API ugovor `docs/api-phase0a.md`.
 - GitHub: privatni repo kao `main`; lokalni repo je staging.
 
+### Dodato — v1.1 (ručna četkica)
+
+- `mask_ops.paint_stroke`: okrugla četkica duž poteza, dodaje (`add=True`) ili
+  briše piksele maskе; binarna (LINE_8), clip van granica, nova maska.
+- `pipeline.revectorize_mask`: ponovna vektorizacija iz retuširane maske bez
+  segmentacije; `run_pipeline` i ovaj put dele `_finish_from_mask`, pa ista
+  maska daje isti SVG.
+- `Canvas` brush režim: `begin/extend/end_brush_stroke`, signal
+  `brush_stroke_finished`, krug kursora i preview poteza; `BrushPanel`
+  (veličina, dodaj/ukloni, poništi potez).
+- `MainWindow`: `brush_mask`/istorija (10), debounce 250 ms pa revektorizacija
+  u workeru, undo poteza, reset pri učitavanju slike.
+- `Config.brush_radius_px` (default 25, opseg 1–500).
+- Zaključan test set četkice (36 testova, autor agy); ukupno 261 test.
+
 ### Dodato — Faza 4
 
 - Verzija `0.4.0`: `__version__`, `pyproject.toml`, `lampcutter --version` i

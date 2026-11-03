@@ -678,8 +678,8 @@ class MainWindow(QMainWindow):
 
     def _on_brush_stroke(self, points: list, add: bool, radius_px: int) -> None:
         """Apply one brush stroke to the mask and re-vectorise in a worker."""
-        if self.brush_mask is None or self.image_path is None:
-            self.statusBar().showMessage("Prvo izvezi geometriju, pa retuširaj masku.")
+        if self.brush_mask is None:
+            self._show_error("Nema maske za retuš — prvo izvezi geometriju.")
             return
         updated = mask_ops.paint_stroke(self.brush_mask, points, radius_px, add=add)
         if np.array_equal(updated, self.brush_mask):
@@ -689,7 +689,10 @@ class MainWindow(QMainWindow):
             self.brush_history.pop(0)
         self.brush_mask = updated
         self.canvas.set_mask(updated)
-        self.retouch_debouncer.schedule(self._revectorize)
+        if self.image_path is not None:
+            self.retouch_debouncer.schedule(self._revectorize)
+        else:
+            self.statusBar().showMessage("Maska retuširana (bez slike: vektorizacija preskočena).")
 
     def _revectorize(self) -> None:
         if self.brush_mask is None or self.image_path is None:

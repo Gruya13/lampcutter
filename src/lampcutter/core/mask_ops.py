@@ -42,7 +42,7 @@ def paint_stroke(
     thickness = max(1, round(radius_px * 2))
     radius = max(1, round(radius_px))
     if len(integer_points) == 1:
-        cv2.circle(canvas, tuple(integer_points[0]), radius, 255, -1, cv2.LINE_AA)
+        cv2.circle(canvas, tuple(integer_points[0]), radius, 255, -1, cv2.LINE_8)
     else:
         cv2.polylines(
             canvas,
@@ -50,10 +50,10 @@ def paint_stroke(
             False,
             255,
             thickness,
-            cv2.LINE_AA,
+            cv2.LINE_8,
         )
         for endpoint in (integer_points[0], integer_points[-1]):
-            cv2.circle(canvas, tuple(endpoint), radius, 255, -1, cv2.LINE_AA)
+            cv2.circle(canvas, tuple(endpoint), radius, 255, -1, cv2.LINE_8)
     stroke = canvas > 0
     result = binary.copy()
     if add:
