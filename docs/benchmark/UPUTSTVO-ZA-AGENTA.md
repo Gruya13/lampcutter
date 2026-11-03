@@ -34,6 +34,10 @@ benchmarku od 2026-11-03):
 
 ### macOS Apple Silicon (MPS)
 
+> **Proveri prvo:** torch 2.14.1 macOS wheel zahteva **macOS 14 (Sonoma) ili noviji**.
+> Zabeleži tačan čip i broj GPU jezgara (npr. `M3 Pro, 18 GPU jezgara`,
+> `system_profiler SPHardwareDataType SPDisplaysDataType`) — to ide u izveštaj.
+
 ```bash
 uv pip install torch==2.14.1 torchvision==0.29.1
 uv pip install setuptools wheel hydra-core iopath tqdm
@@ -105,7 +109,9 @@ Rezultati će biti upoređeni sa CPU rezultatima u
 - Ovo su sintetički uzorci: vremena su relevantna, a kvalitet maske je samo
   indikativan za stvarne fotografije upaljene lampe (Faza E, spec 13.3).
 - Za Mac: ako MPS ne podržava neku operaciju, `PYTORCH_ENABLE_MPS_FALLBACK=1` je
-  već postavljen u koracima iznad; upozorenje o fallback-u je očekivano.
+  već postavljen u koracima iznad; upozorenje o fallback-u je očekivano i utiče na
+  brzinu — navedi ga u izveštaju ako se pojavi često.
+- Na Macu se ne koristi Neural Engine — PyTorch MPS koristi samo GPU.
 - Modeli se **ne commit-uju** (`.gitignore`), samo `models/manifest.json` sa SHA256.
 - `uv run` bez `--no-sync` bi uklonio ML pakete iz okruženja (nisu u locku) — zato
   je svuda naveden `--no-sync`.

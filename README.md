@@ -65,6 +65,9 @@ uv run --no-sync python scripts/benchmark.py --images tests/data --variants tiny
 Uputstvo za pokretanje na drugoj mašini (Mac MPS / CUDA, za collaboratora):
 [docs/benchmark/UPUTSTVO-ZA-AGENTA.md](docs/benchmark/UPUTSTVO-ZA-AGENTA.md).
 
+Uporedna tabela svih platformi (Mac MPS se čeka):
+[docs/benchmark/POREDJENJE-PLATFORMI.md](docs/benchmark/POREDJENJE-PLATFORMI.md).
+
 Rezultati (sintetički mockupi, isti uzorci za obe platforme):
 
 - **CUDA (RTX 3050 Laptop, 4 GB)** — [2026-11-03-cuda-rtx3050.md](docs/benchmark/2026-11-03-cuda-rtx3050.md):
