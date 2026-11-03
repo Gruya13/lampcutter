@@ -120,7 +120,8 @@ Uputstvo za korisnike: [docs/INSTALACIJA.md](docs/INSTALACIJA.md).
 
 Kompletno uputstvo šta proveriti i dostaviti — benchmark na Mac-u, fizičke probe
 po fazama (LightBurn dimenzije, kerf, jezičak, gravura, poravnanje štampe) i
-ulazni materijal za Fazu E:
+**prikupljanje materijala za Fazu E** (2–3 fotografije upaljene lampe + 2–3
+mockupa sa visinama, dostavlja Dalibor):
 [docs/VERIFIKACIJA.md](docs/VERIFIKACIJA.md).
 
 ## Benchmark

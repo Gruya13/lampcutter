@@ -8,7 +8,7 @@ i 1, plus benchmark na Mac-u i ulazni materijal za Fazu E.
 | Ko | Šta radi |
 |---|---|
 | **Agenti** | kloniraju repo, instaliraju zavisnosti, generišu fajlove, pokreću benchmark, popunjavaju tabele, otvaraju PR |
-| **Dalibor** | fizičke radnje: uvoz u LightBurn, sečenje, merenje pomičnim merilom, štampa, fotografisanje |
+| **Dalibor** | fizičke radnje: uvoz u LightBurn, sečenje, merenje pomičnim merilom, štampa, fotografisanje; **prikuplja i dostavlja materijal za Fazu E** (2–3 fotografije upaljene lampe + 2–3 mockupa sa visinama) |
 | **DSH + Agi** | implementacija, testovi, obrada nalaza |
 
 Repo je **privatan**: sve što se pošalje (fotografije klijenata, probni rezovi)
@@ -222,25 +222,32 @@ gravure i štampe, rezultat uvoza u LightBurn (screenshot je dovoljan).
 | GUI se otvorio | da / ne |
 | greške (ako ih ima) | |
 
-## 4. Faza E — ulazni materijal za eksperiment segmentacije
+## 4. Faza E — ulazni materijal (dostavlja Dalibor)
 
-Potrebno je **2–3 stvarne fotografije upaljene lampe** (ne mockup) i
-**2–3 mockupa sa poznatim stvarnim visinama** (spec 13.3 i 17):
+**Dalibor prikuplja i dostavlja** materijal za eksperiment segmentacije na
+stvarnim slikama (spec 13.3 i 17): **2–3 stvarne fotografije upaljene lampe**
+(ne mockup) i **2–3 mockupa sa poznatim stvarnim visinama**. Bez ovoga se Faza E
+ne može završiti — to je jedini preostali deo plana.
+
+Za svaku dostavljenu sliku važi:
 
 - frontalni snimak, kamera približno normalno na ravan lampe;
 - poznata visina izrezanog dela u mm (bez jezička);
 - format JPG/PNG/WEBP, preporuka > 1500 px po dužoj strani;
-- ako imaš, priloži i referentne maske (PNG, bela = lampa).
+- ako imaš, priloži i referentne maske (PNG, bela = lampa);
+- uz svaku sliku obavezno navedi **stvarnu visinu izrezanog dela u mm** (bez
+  jezička) — bez toga se ne može izračunati skala.
 
-Imenovanje i tabela:
+Imenovanje i tabela (Dalibor popunjava):
 
 | fajl | tip (foto/mockup) | visina mm | napomena |
 |---|---|---|---|
 | `foto_srce_200mm.jpg` | foto | 200 | upaljena lampa, front |
 | `mockup_porodica_250mm.png` | mockup | 250 | render |
 
-Fajlove stavi u `tests/data/private/` (gitignore) ili pošalji arhivom; u
-`proba/faza-e/` ako želiš da idu kroz PR.
+Fajlove stavi u `tests/data/private/` (gitignore) ili pošalji arhivom uz
+benchmark; u `proba/faza-e/` ako želiš da idu kroz PR. Repo je privatan —
+klijentske fotografije ne izlaze iz njega.
 
 ## 5. Šta vratiti i kako
 
@@ -249,7 +256,9 @@ Fajlove stavi u `tests/data/private/` (gitignore) ili pošalji arhivom; u
 - `benchmark_report/benchmark.json` + `BENCHMARK.md` (Mac),
 - `proba/` sa tabelama (može i kao `proba/verifikacija/REZULTATI.md`),
 - fotografijama probnih rezova, gravure i štampe,
-- `proba/materials.json`, `proba/moja_baza.json`, `proba/1a/manifest.json`.
+- `proba/materials.json`, `proba/moja_baza.json`, `proba/1a/manifest.json`,
+- **materijal za Fazu E** (2–3 fotografije upaljene lampe + 2–3 mockupa sa
+  visinama; tabela iz §4).
 
 Alternativno: issue u repou sa nalazima, ili pošalji korisniku pa će on dostaviti
 meni.
@@ -288,7 +297,8 @@ meni.
 - [ ] Faza 1: gravura u plavom sloju, unutar konture, ne seče
 - [ ] Faza 1: print sheet odštampan 1:1; registracione oznake izmerene
 - [ ] Faza 1: poravnanje štampe i reza u toleranciji
-- [ ] Faza E: fotografije/mockupi sa visinama dostavljeni (ili dogovoren rok)
+- [ ] Faza E: **Dalibor dostavio** 2–3 fotografije upaljene lampe + 2–3 mockupa
+      sa stvarnim visinama (tabela iz §4)
 - [ ] Faza 4: release paket preuzet, `--version` i GUI rade
 - [ ] Nalazi dokumentovani (PR/issue) i poslati DSH-u za obradu
 

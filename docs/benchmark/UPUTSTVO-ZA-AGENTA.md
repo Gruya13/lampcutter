@@ -97,6 +97,12 @@ Dva fajla iz `benchmark_report/`:
    CUDA/MPS status, RAM/VRAM).
 
 Ako je moguće, pošalji i prvih ~30 linija `benchmark.json` (sekcija `environment`).
+
+**Bonus — materijal za Fazu E (dostavlja Dalibor):** ako Dalibor ima pristup
+gotovim lampama, zajedno sa benchmarkom prikupite i pošaljite **2–3 fotografije
+upaljene lampe** i **2–3 mockupa sa poznatim stvarnim visinama** (detalji i
+tabela: `docs/VERIFIKACIJA.md`, sekcija 4). To je ulaz za eksperiment
+segmentacije na stvarnim slikama.
 Rezultati će biti upoređeni sa CPU rezultatima u
 [`2026-11-03-cpu.md`](2026-11-03-cpu.md), a zatim commitovani u
 `docs/benchmark/<datum>-<platforma>.md`.
@@ -107,7 +113,8 @@ Rezultati će biti upoređeni sa CPU rezultatima u
   150 mm) sa tačnim referentnim maskama u `tests/data/ref/`. Ne menjati ih — ista
   tri uzorka su korišćena u CPU benchmarku, pa su rezultati uporedivi.
 - Ovo su sintetički uzorci: vremena su relevantna, a kvalitet maske je samo
-  indikativan za stvarne fotografije upaljene lampe (Faza E, spec 13.3).
+  indikativan — stvarne fotografije upaljene lampe dolaze u Fazi E (spec 13.3),
+  a prikuplja ih i dostavlja Dalibor (vidi `docs/VERIFIKACIJA.md` §4).
 - Za Mac: ako MPS ne podržava neku operaciju, `PYTORCH_ENABLE_MPS_FALLBACK=1` je
   već postavljen u koracima iznad; upozorenje o fallback-u je očekivano i utiče na
   brzinu — navedi ga u izveštaju ako se pojavi često.
