@@ -140,6 +140,7 @@ finalno izdanje čekamo materijal od collaboratora (Dalibor):
 Benchmark je **kompletan** (CPU, CUDA RTX 3050, Apple M5 Pro MPS) — tu više
 ništa ne treba. Kada stignu stavke 1–3, radimo Fazu E (kalibracija pragova iz
 spec 13.2 i odluka o podrazumevanim varijantama).
+
 ## Verifikacija
 
 Šta proveriti i dostaviti pre izdavanja — benchmark, fizičke probe po fazama
