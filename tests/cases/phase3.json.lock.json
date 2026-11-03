@@ -1,13 +1,21 @@
 {
   "version": 1,
   "casesFile": "phase3.json",
-  "casesSha256": "95188666c6faca1b0ac8937c933b8e7cee57e25c8d20ebad8b94bb354fb81faf",
+  "casesSha256": "7f6a22fc5113dcb96a86e77e214448c6f6c29f06e5d91e350c676235ecde3a30",
   "cases": 41,
   "entry": "test_phase3_spec.py",
   "gitRel": "tests/cases/phase3.json",
   "gitState": "clean",
-  "gitRevision": "acd560865eb1a5ae777751893f7238cdf351c258",
+  "gitRevision": "76c319f9d97b8485c72e21ae86562b73bb8d5afd",
   "lockedAt": "2026-11-03T13:12:47.351Z",
   "lockedBy": "agy",
-  "relocks": []
+  "relocks": [
+    {
+      "at": "2026-11-03T13:18:42.197Z",
+      "by": "agy",
+      "reason": "PipelineResult u testu koristio raw_mask/cleaned_mask umesto mask_raw/mask_clean; revizija bdddc2d",
+      "from": "95188666c6faca1b0ac8937c933b8e7cee57e25c8d20ebad8b94bb354fb81faf",
+      "to": "7f6a22fc5113dcb96a86e77e214448c6f6c29f06e5d91e350c676235ecde3a30"
+    }
+  ]
 }
