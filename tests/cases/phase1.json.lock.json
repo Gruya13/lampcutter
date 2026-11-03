@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "casesFile": "phase1.json",
+  "casesSha256": "45750fdaa67480927dc0b951e32a0ef421d3c92176c9b94d33bc40250b86de8c",
+  "cases": 42,
+  "entry": "test_phase1_spec.py",
+  "gitRel": "tests/cases/phase1.json",
+  "gitState": "clean",
+  "gitRevision": "e99d4cbba0e727f6f7f07f58052b31ca5b54c385",
+  "lockedAt": "2026-11-03T11:38:33.459Z",
+  "lockedBy": "agy",
+  "relocks": []
+}
