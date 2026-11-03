@@ -2,6 +2,7 @@ name: CI
 
 "on":
   push:
+    branches: [main]
   pull_request:
 
 jobs:
@@ -28,6 +29,13 @@ jobs:
         run: |
           uv run --no-sync ruff check .
           uv run --no-sync ruff format --check src scripts
+      - name: Qt sistemske biblioteke (offscreen)
+        # pytest-qt se učitava za svaki pytest poziv; bez libEGL PySide6 ne može
+        # da se importuje i ceo test korak pada sa "INTERNALERROR ... libEGL.so.1".
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libgl1 libxkbcommon0 libdbus-1-3 libfontconfig1
       - name: Zaključani test setovi (mreža blokirana)
         run: |
           for suite in phase0a phase0b phase1 phase2 phase3 phase4 brush; do
