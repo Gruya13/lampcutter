@@ -30,7 +30,11 @@ import path from 'node:path';
 import { lockVerdict } from './lock-verdict.mjs';
 import { fileURLToPath } from 'node:url';
 
-const WIKI_SERVER = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'wiki', 'wiki-mcp.mjs');
+// The MCP server used to live in the committed `wiki/` folder; it now sits in
+// the embedded, gitignored `.wiki/` repo (or wherever WIKI_MCP_SERVER points).
+const WIKI_SERVER = process.env.WIKI_MCP_SERVER !== undefined && process.env.WIKI_MCP_SERVER !== ''
+  ? path.resolve(process.env.WIKI_MCP_SERVER)
+  : path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.wiki', 'wiki-mcp.mjs');
 
 export const LOCK_VERSION = 1;
 export const EXIT_OK = 0;
