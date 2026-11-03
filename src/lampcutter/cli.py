@@ -9,6 +9,7 @@ import sys
 import warnings
 from pathlib import Path
 
+from lampcutter import __version__
 from lampcutter.config import Config
 from lampcutter.core import calibrate, compose, decor, slots
 from lampcutter.core.pipeline import PipelineError, run_pipeline
@@ -77,6 +78,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="lampcutter",
         description="Pretvara sliku dizajna akrilne lampe u SVG za sečenje u milimetrima.",
     )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     run_parser = subparsers.add_parser("run", help="obradi jednu sliku i izvezi SVG")

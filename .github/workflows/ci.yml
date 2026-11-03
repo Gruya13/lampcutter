@@ -11,6 +11,10 @@ jobs:
       QT_QPA_PLATFORM: offscreen
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Pun istorija: test-lock proverava zaključane testove preko git
+          # revizije (git show <rev>:<path>), shallow clone bi ga oborio.
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.12"
@@ -19,8 +23,7 @@ jobs:
           node-version: "22"
       - name: Instaliraj zavisnosti
         run: |
-          uv sync --group dev
-          uv pip install "PySide6==6.12.0" "pytest-qt==4.5.0"
+          uv sync --group dev --extra gui
       - name: Lint
         run: |
           uv run --no-sync ruff check .

@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+          - os: macos-latest
+            platform: macos-arm64
+          - os: windows-latest
+            platform: windows-x86_64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Lock proverava git revizije; shallow clone bi oborio verifikaciju.
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Instaliraj zavisnosti
+        run: uv sync --group dev --extra gui
+      - name: Napravi bundle
+        run: uv run --no-sync python scripts/build.py --archive
+      - name: Proveri bundle
+        run: |
+          uv run --no-sync python scripts/build.py --dry-run > /dev/null
+          python -c "import pathlib; files = list(pathlib.Path('dist').glob('*.zip')); assert files, 'nema arhive'; print(files[0], files[0].stat().st_size)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lampcutter-${{ matrix.platform }}
+          path: dist/*.zip
+          if-no-files-found: error
+
+  release:
+    name: GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          generate_release_notes: true

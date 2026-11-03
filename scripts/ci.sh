@@ -6,8 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 echo "== zavisnosti =="
-uv sync --group dev
-uv pip install "PySide6==6.12.0" "pytest-qt==4.5.0"
+uv sync --group dev --extra gui
 
 echo "== ruff check =="
 uv run --no-sync ruff check .
