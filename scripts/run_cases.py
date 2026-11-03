@@ -30,8 +30,12 @@ def load_cases(path: Path) -> dict:
         if len(parts) == 3:
             text = parts[2].lstrip("\n")
     data = json.loads(text)
-    if not isinstance(data, dict) or "source" not in data:
-        raise ValueError("cases fajl mora biti JSON sa poljem 'source'")
+    if not isinstance(data, dict):
+        raise ValueError("cases fajl mora biti JSON objekat")
+    source = data.get("source_text", data.get("source"))
+    if not isinstance(source, str) or not source.strip():
+        raise ValueError("cases fajl nema 'source_text' (izvorni pytest kod)")
+    data["source"] = source
     return data
 
 
