@@ -1,12 +1,14 @@
-"""Main window: canvas, panels and background pipeline runs (specification, 12.1-12.4)."""
+"""Main window: canvas, panels, projects and background pipeline runs (spec 12)."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
+import shapely
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
+    QDialog,
     QFileDialog,
     QHBoxLayout,
     QMainWindow,
@@ -18,11 +20,13 @@ from PySide6.QtWidgets import (
 )
 
 from lampcutter.config import Config
-from lampcutter.core import geometry
+from lampcutter.core import compose, geometry, project
+from lampcutter.core import slots as slots_module
 from lampcutter.core.pipeline import PipelineResult, run_pipeline
-from lampcutter.models import BaseProfile, MaterialProfile
-from lampcutter.settings import AppSettings
+from lampcutter.models import BaseProfile, DecorElement, LampTemplate, MaterialProfile, PhotoSlot
+from lampcutter.settings import AppSettings, save_bases, save_materials
 from lampcutter.ui.canvas import Canvas
+from lampcutter.ui.dialogs import BaseEditorDialog, MaterialEditorDialog
 from lampcutter.ui.panels import (
     BasePanel,
     ContourPanel,
@@ -32,9 +36,12 @@ from lampcutter.ui.panels import (
 )
 from lampcutter.ui.workers import Debouncer, TaskRunner
 
+PROJECT_FILTER = "Lampcutter projekat (*.lampproj)"
+TEMPLATE_FILTER = "Lampcutter šablon (*.lamptpl)"
+
 
 class MainWindow(QMainWindow):
-    """GUI skeleton: image canvas, side panels and the export pipeline in workers."""
+    """GUI: image canvas, side panels, project/template files and the export pipeline."""
 
     def __init__(self, settings: AppSettings | None = None, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -45,7 +52,11 @@ class MainWindow(QMainWindow):
 
         self.image_path: Path | None = None
         self.last_result: PipelineResult | None = None
+        self.last_export: compose.ExportResult | None = None
         self.last_error: str | None = None
+        self.template: LampTemplate | None = None
+        self.project_path: Path | None = None
+        self.template_path: Path | None = None
         self._cancel_requested = False
 
         self.canvas = Canvas()
@@ -78,8 +89,10 @@ class MainWindow(QMainWindow):
         self.cancel_button = QPushButton("Otkaži")
         self.cancel_button.setEnabled(False)
         self.export_button = QPushButton("Izvezi")
+        self.save_project_button = QPushButton("Sačuvaj projekat")
         bottom = QHBoxLayout()
         bottom.addWidget(self.progress, 1)
+        bottom.addWidget(self.save_project_button)
         bottom.addWidget(self.cancel_button)
         bottom.addWidget(self.export_button)
         bottom_widget = QWidget()
@@ -101,36 +114,63 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------ setup
     def _build_menu(self) -> None:
         file_menu = self.menuBar().addMenu("&Datoteka")
-        open_action = QAction("Otvori sliku…", self)
-        open_action.setShortcut(QKeySequence.StandardKey.Open)
-        open_action.triggered.connect(self.open_image_dialog)
-        file_menu.addAction(open_action)
-        export_action = QAction("Izvezi", self)
-        export_action.setShortcut("Ctrl+E")
-        export_action.triggered.connect(self.export)
-        file_menu.addAction(export_action)
+        self._add_action(
+            file_menu, "Otvori sliku…", self.open_image_dialog, QKeySequence.StandardKey.Open
+        )
+        self._add_action(file_menu, "Otvori projekat…", self.open_project_dialog, "Ctrl+Shift+O")
+        self._add_action(file_menu, "Sačuvaj projekat", self.save_project, "Ctrl+S")
+        self._add_action(
+            file_menu, "Sačuvaj projekat kao…", self.save_project_dialog, "Ctrl+Shift+S"
+        )
         file_menu.addSeparator()
-        quit_action = QAction("Izlaz", self)
-        quit_action.setShortcut(QKeySequence.StandardKey.Quit)
-        quit_action.triggered.connect(self.close)
-        file_menu.addAction(quit_action)
+        self._add_action(file_menu, "Otvori šablon…", self.open_template_dialog)
+        self._add_action(file_menu, "Sačuvaj šablon…", self.save_template_dialog)
+        file_menu.addSeparator()
+        self._add_action(file_menu, "Izvezi", self.export, "Ctrl+E")
+        self._add_action(file_menu, "Izlaz", self.close, QKeySequence.StandardKey.Quit)
 
         edit_menu = self.menuBar().addMenu("&Uredi")
-        undo_action = QAction("Poništi", self)
-        undo_action.setShortcut(QKeySequence.StandardKey.Undo)
-        undo_action.triggered.connect(self.undo)
-        edit_menu.addAction(undo_action)
-        clear_action = QAction("Očisti prompt", self)
-        clear_action.triggered.connect(self.clear_prompt)
-        edit_menu.addAction(clear_action)
+        self._add_action(edit_menu, "Poništi", self.undo, QKeySequence.StandardKey.Undo)
+        self._add_action(edit_menu, "Očisti prompt", self.clear_prompt)
 
         mode_menu = self.menuBar().addMenu("&Režim")
-        prompt_mode = QAction("Prompt (tačke/okvir)", self)
-        prompt_mode.triggered.connect(lambda: self.canvas.set_mode(Canvas.MODE_PROMPT))
-        mode_menu.addAction(prompt_mode)
-        polygon_mode = QAction("Poligon alat", self)
-        polygon_mode.triggered.connect(lambda: self.canvas.set_mode(Canvas.MODE_POLYGON))
-        mode_menu.addAction(polygon_mode)
+        self._add_action(
+            mode_menu,
+            "Prompt (tačke/okvir)",
+            lambda: self.canvas.set_mode(Canvas.MODE_PROMPT),
+        )
+        self._add_action(
+            mode_menu,
+            "Poligon alat",
+            lambda: self.canvas.set_mode(Canvas.MODE_POLYGON),
+        )
+
+        element_menu = self.menuBar().addMenu("&Elementi")
+        self._add_action(
+            element_menu,
+            "Dodaj slot iz poligona",
+            lambda: self.add_element_from_polygon("slot"),
+        )
+        self._add_action(
+            element_menu,
+            "Dodaj gravuru iz poligona",
+            lambda: self.add_element_from_polygon("decor", "engrave"),
+        )
+        self._add_action(
+            element_menu,
+            "Dodaj štampu iz poligona",
+            lambda: self.add_element_from_polygon("decor", "print"),
+        )
+        self._add_action(element_menu, "Ukloni izabrani element", self.remove_selected_element)
+        self._add_action(element_menu, "Očisti elemente", self.clear_elements)
+
+    def _add_action(self, menu, text: str, slot, shortcut=None) -> QAction:
+        action = QAction(text, self)
+        if shortcut is not None:
+            action.setShortcut(shortcut)
+        action.triggered.connect(lambda _checked=False: slot())
+        menu.addAction(action)
+        return action
 
     def _connect_signals(self) -> None:
         self.canvas.prompt_point_added.connect(lambda *_: self._on_interaction())
@@ -138,12 +178,16 @@ class MainWindow(QMainWindow):
         self.canvas.polygon_finished.connect(lambda *_: self._on_interaction())
         self.canvas.image_loaded.connect(lambda *_: self._on_interaction())
         self.size_panel.size_changed.connect(lambda *_: self._on_interaction())
+        self.size_panel.size_changed.connect(lambda *_: self._refresh_computed())
         self.material_panel.material_changed.connect(lambda *_: self._on_interaction())
+        self.material_panel.edit_requested.connect(self._edit_material)
         self.base_panel.base_changed.connect(lambda *_: self._on_settings_changed())
+        self.base_panel.edit_requested.connect(self._edit_base)
         self.contour_panel.contour_changed.connect(lambda *_: self._on_settings_changed())
         self.elements_panel.mode_changed.connect(self._on_element_mode)
         self.cancel_button.clicked.connect(self.cancel)
         self.export_button.clicked.connect(self.export)
+        self.save_project_button.clicked.connect(self.save_project)
 
     # ------------------------------------------------------------------ state
     def current_config(self) -> Config:
@@ -175,22 +219,73 @@ class MainWindow(QMainWindow):
         base = self.current_base()
         if base is None:
             return
-        material = self.current_material()
-        clearance = geometry.slot_clearance(base, material)
+        clearance = geometry.slot_clearance(base, self.current_material())
         self.base_panel.set_clearance(
             clearance.planar_clearance_mm, clearance.thickness_clearance_mm
         )
 
-    # ---------------------------------------------------------------- actions
+    def _refresh_computed(self) -> None:
+        if self.last_result is not None:
+            height_mm = self.last_result.scale.height_mm
+            tab = self.current_base().tab_height_mm if self.current_base() else 0.0
+            self.size_panel.set_computed(
+                self.last_result.scale.width_mm, height_mm, height_mm + tab
+            )
+
+    # ---------------------------------------------------------------- profiles
+    def _edit_material(self) -> None:
+        material = self.current_material()
+        dialog = MaterialEditorDialog(material, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        updated = dialog.edited_material()
+        self.settings.materials = [
+            updated if item.id == material.id else item for item in self.settings.materials
+        ]
+        try:
+            save_materials(self.settings.materials)
+        except OSError as error:  # pragma: no cover - filesystem dependent
+            self._show_error(f"Ne mogu da sačuvam profil materijala: {error}")
+        self.material_panel.set_materials(self.settings.materials)
+        self.material_panel.select_material(updated.id)
+        self._update_clearance()
+        self.statusBar().showMessage(
+            f"Materijal {updated.id}: kerf {updated.kerf_mm:g} mm (važi za sledeći izvoz)"
+        )
+        self._on_interaction()
+
+    def _edit_base(self) -> None:
+        base = self.current_base()
+        if base is None:
+            return
+        dialog = BaseEditorDialog(base, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        updated = dialog.edited_base()
+        self.settings.bases = [
+            updated if item.id == base.id else item for item in self.settings.bases
+        ]
+        try:
+            save_bases(self.settings.bases)
+        except OSError as error:  # pragma: no cover - filesystem dependent
+            self._show_error(f"Ne mogu da sačuvam profil postolja: {error}")
+        self.base_panel.set_bases(self.settings.bases)
+        self.base_panel.select_base(updated.id)
+        self._update_clearance()
+        self.statusBar().showMessage(f"Postolje {updated.id}: sačuvano (važi za sledeći izvoz)")
+        self._on_interaction()
+
+    # ----------------------------------------------------------------- actions
     def load_image(self, path: str | Path) -> None:
         path = Path(path)
         try:
             self.canvas.set_image(path)
-        except Exception as error:  # shown to the user
+        except Exception as error:
             self._show_error(f"Ne mogu da učitam sliku: {error}")
             return
         self.image_path = path
         self.last_result = None
+        self.template = None
         self.elements_panel.set_elements([], [])
         self.statusBar().showMessage(f"Učitano: {path.name}")
 
@@ -267,7 +362,31 @@ class MainWindow(QMainWindow):
                 result.clearance.planar_clearance_mm,
                 result.clearance.thickness_clearance_mm,
             )
-        self.statusBar().showMessage(f"Izvezeno: {result.svg_path}")
+        self._ensure_template()
+        self._refresh_elements()
+        self._refresh_computed()
+        self.statusBar().showMessage(f"Geometrija: {result.svg_path}")
+        if self.template is not None and (self.template.slots or self.template.decor):
+            self.runner.run(
+                compose.export_bundle,
+                self.template,
+                Path("izlaz") / "gui",
+                self.current_config(),
+                on_finished=self._on_export_done,
+                on_failed=self._on_export_failed,
+            )
+
+    def _on_export_done(self, export_result: compose.ExportResult) -> None:
+        self.last_export = export_result
+        message = f"Izvezeno: {export_result.svg_path}"
+        if export_result.print_sheet_path is not None:
+            message += f" + {export_result.print_sheet_path.name}"
+        self.statusBar().showMessage(message)
+        for warning in export_result.warnings:
+            self.statusBar().showMessage(f"Upozorenje: {warning}", 8000)
+
+    def _on_export_failed(self, message: str) -> None:
+        self._show_error(f"Izvoz štampe nije uspeo: {message}")
 
     def _on_failed(self, message: str) -> None:
         self.progress.setValue(0)
@@ -291,16 +410,234 @@ class MainWindow(QMainWindow):
         self.canvas.clear_prompt()
         self.statusBar().showMessage("Prompt očišćen")
 
+    # -------------------------------------------------------- project / template
+    def current_project_state(self) -> project.ProjectState:
+        contour = self.contour_panel.values()
+        cfg = self.current_config()
+        edge_inset = dict(cfg.edge_inset_mm)
+        edge_inset[contour["input_kind"]] = contour["edge_inset_mm"]
+        prompt = (
+            self.canvas.prompt_builder.to_prompt()
+            if not self.canvas.prompt_builder.is_empty
+            else None
+        )
+        polygon = (
+            [(round(x), round(y)) for x, y in self.canvas.polygon_tool.points]
+            if self.canvas.polygon_tool.closed
+            else []
+        )
+        return project.ProjectState(
+            image_path=self.image_path,
+            prompt=prompt,
+            polygon_px=polygon,
+            reference=self.size_panel.reference(),
+            height_mm=self.size_panel.value_mm(),
+            material_id=self.current_material().id,
+            base_id=self.current_base().id if self.current_base() else None,
+            kerf_mode=contour["kerf_mode"],
+            input_kind=contour["input_kind"],
+            edge_inset_mm=edge_inset,
+            simplify_tol_mm=contour["simplify_tol_mm"],
+            template_path=self.template_path,
+        )
+
+    def apply_project_state(self, state: project.ProjectState) -> None:
+        if state.image_path is not None and state.image_path.exists():
+            self.load_image(state.image_path)
+        if state.prompt is not None:
+            self.canvas.load_prompt(state.prompt)
+        if state.polygon_px:
+            self.canvas.load_polygon(state.polygon_px)
+        self.size_panel.set_reference(state.reference)
+        self.size_panel.set_value_mm(state.height_mm)
+        self.material_panel.select_material(state.material_id)
+        self.base_panel.select_base(state.base_id)
+        self.contour_panel.set_values(
+            {
+                "input_kind": state.input_kind,
+                "kerf_mode": state.kerf_mode,
+                "simplify_tol_mm": state.simplify_tol_mm,
+                "edge_inset_mm": state.edge_inset_mm.get(
+                    state.input_kind, self.contour_panel.edge_inset.value()
+                ),
+            }
+        )
+        if state.template_path is not None and state.template_path.exists():
+            self._load_template_file(state.template_path)
+        self._update_clearance()
+
+    def save_project(self) -> None:
+        if self.project_path is None:
+            self.save_project_dialog()
+            return
+        self._write_project(self.project_path)
+
+    def save_project_dialog(self) -> None:
+        path, _ = QFileDialog.getSaveFileName(self, "Sačuvaj projekat", "", PROJECT_FILTER)
+        if not path:
+            return
+        if not path.endswith(".lampproj"):
+            path += ".lampproj"
+        self._write_project(Path(path))
+
+    def _write_project(self, path: Path) -> None:
+        state = self.current_project_state()
+        project.save_project(state, path)
+        self.project_path = path
+        self.statusBar().showMessage(f"Projekat sačuvan: {path}")
+
+    def open_project_dialog(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(self, "Otvori projekat", "", PROJECT_FILTER)
+        if path:
+            self.open_project(Path(path))
+
+    def open_project(self, path: Path) -> None:
+        try:
+            state = project.load_project(path)
+        except (OSError, ValueError) as error:
+            self._show_error(f"Ne mogu da otvorim projekat: {error}")
+            return
+        self.apply_project_state(state)
+        self.project_path = Path(path)
+        self.statusBar().showMessage(f"Projekat otvoren: {path}")
+
+    def save_template_dialog(self) -> None:
+        self._ensure_template()
+        if self.template is None:
+            self._show_error("Prvo izvezi geometriju (Izvezi), pa sačuvaj šablon.")
+            return
+        path, _ = QFileDialog.getSaveFileName(self, "Sačuvaj šablon", "", TEMPLATE_FILTER)
+        if not path:
+            return
+        if not path.endswith(".lamptpl"):
+            path += ".lamptpl"
+        slots_module.save_template(self.template, path)
+        self.template_path = Path(path)
+        self.statusBar().showMessage(f"Šablon sačuvan: {path}")
+
+    def open_template_dialog(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(self, "Otvori šablon", "", TEMPLATE_FILTER)
+        if path:
+            self._load_template_file(Path(path))
+
+    def _load_template_file(self, path: Path) -> None:
+        try:
+            self.template = slots_module.load_template(path)
+        except (OSError, ValueError) as error:
+            self._show_error(f"Ne mogu da otvorim šablon: {error}")
+            return
+        self.template_path = Path(path)
+        self._refresh_elements()
+        self.statusBar().showMessage(f"Šablon otvoren: {path}")
+
+    # -------------------------------------------------------------- elements
+    def _ensure_template(self) -> None:
+        """Build the current template from the last result and the existing elements."""
+        if self.last_result is None:
+            return
+        existing_slots = self.template.slots if self.template is not None else []
+        existing_decor = self.template.decor if self.template is not None else []
+        self.template = LampTemplate(
+            outline=self.last_result.cut_geometry,
+            slots=existing_slots,
+            decor=existing_decor,
+            base=self.current_base() or self.settings.bases[0],
+            material=self.current_material(),
+            scale=self.last_result.scale,
+            input_kind=self.current_input_kind(),
+        )
+
+    def _mm_per_px(self) -> float | None:
+        if self.last_result is not None:
+            return self.last_result.scale.mm_per_px
+        if self.template is not None:
+            return self.template.scale.mm_per_px
+        return None
+
+    def _refresh_elements(self) -> None:
+        slots = self.template.slots if self.template is not None else []
+        decor = self.template.decor if self.template is not None else []
+        self.elements_panel.set_elements(slots, decor)
+        mm_per_px = self._mm_per_px()
+        if mm_per_px:
+            self.canvas.set_slots([slot.polygon_mm for slot in slots], mm_per_px)
+            self.canvas.set_decor([element.polygon_mm for element in decor], mm_per_px)
+
+    def _polygon_mm(self) -> shapely.Polygon | None:
+        polygon_px = self._finished_polygon_px()
+        mm_per_px = self._mm_per_px()
+        if polygon_px is None or mm_per_px is None:
+            return None
+        return shapely.Polygon([(x * mm_per_px, y * mm_per_px) for x, y in polygon_px])
+
+    def add_element_from_polygon(self, kind: str, decor_mode: str = "engrave") -> None:
+        """Turn the finished manual polygon into a slot or a decor element."""
+        self._ensure_template()
+        if self.template is None or self.last_result is None:
+            self._show_error("Prvo izvezi geometriju (Izvezi), pa dodaj element iz poligona.")
+            return
+        polygon = self._polygon_mm()
+        if polygon is None:
+            self._show_error("Nacrtaj i završi poligon (desni klik), pa dodaj element.")
+            return
+        if kind == "slot":
+            element_id = f"slot-{len(self.template.slots) + 1}"
+            self.template.slots.append(
+                PhotoSlot(id=element_id, polygon_mm=polygon, source="manual")
+            )
+        elif kind == "decor":
+            element_id = f"decor-{len(self.template.decor) + 1}"
+            self.template.decor.append(
+                DecorElement(
+                    id=element_id,
+                    polygon_mm=polygon,
+                    source="manual",
+                    mode=decor_mode if decor_mode in ("engrave", "print", "none") else "engrave",
+                )
+            )
+        else:
+            raise ValueError(f"nepoznata vrsta elementa {kind!r}")
+        self.canvas.polygon_tool.reset()
+        self.canvas._redraw_polygon()
+        self._refresh_elements()
+        self.statusBar().showMessage(f"Dodat element {element_id}")
+
+    def remove_selected_element(self) -> None:
+        if self.template is None:
+            return
+        current = self.elements_panel.current_element()
+        if current is None:
+            self.statusBar().showMessage("Izaberi element u listi.")
+            return
+        kind, element_id = current
+        if kind == "slot":
+            self.template.slots = [slot for slot in self.template.slots if slot.id != element_id]
+        else:
+            self.template.decor = [
+                element for element in self.template.decor if element.id != element_id
+            ]
+        self._refresh_elements()
+        self.statusBar().showMessage(f"Uklonjen element {element_id}")
+
+    def clear_elements(self) -> None:
+        if self.template is not None:
+            self.template.slots = []
+            self.template.decor = []
+        self._refresh_elements()
+        self.statusBar().showMessage("Elementi očišćeni")
+
     def _on_element_mode(self, element_id: str, mode: str) -> None:
-        self.statusBar().showMessage(f"Element {element_id}: režim {mode} (čuva se u Fazi 3)")
+        if self.template is None:
+            return
+        for element in self.template.decor:
+            if element.id == element_id:
+                element.mode = mode if mode in ("engrave", "print", "none") else element.mode
+                self._refresh_elements()
+                self.statusBar().showMessage(f"Element {element_id}: režim {mode}")
+                return
 
     def _show_error(self, message: str) -> None:
-        """Report an error through the status bar.
-
-        A modal dialog would block headless tests and a background export; the
-        error is kept on `last_error` for callers and the UI shows it in the
-        status bar instead.
-        """
+        """Report an error through the status bar (no modal dialog in workers/tests)."""
         self.last_error = message
         self.statusBar().showMessage(f"Greška: {message}")
 

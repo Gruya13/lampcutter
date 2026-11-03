@@ -303,6 +303,21 @@ class Canvas(QGraphicsView):
             self._scene.removeItem(item)
         return self.prompt_builder.undo()
 
+    def load_prompt(self, prompt) -> None:
+        """Replace the current prompt with a saved one (project open)."""
+        self.clear_prompt()
+        for point, label in zip(prompt.points, prompt.labels, strict=False):
+            self.add_prompt_point(int(label), (float(point[0]), float(point[1])))
+        if prompt.box is not None:
+            self.select_box(tuple(float(value) for value in prompt.box))
+
+    def load_polygon(self, points: list[tuple[int, int]]) -> None:
+        """Replace the manual polygon with a saved one (project open)."""
+        self.polygon_tool.reset()
+        for point in points:
+            self.add_polygon_vertex((float(point[0]), float(point[1])))
+        self._redraw_polygon()
+
     def clear_prompt(self) -> None:
         """Remove every prompt marker and reset the builder."""
         for item in self._prompt_items:

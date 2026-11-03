@@ -72,6 +72,11 @@ class SizePanel(QGroupBox):
     def value_mm(self) -> float:
         return self.value_spin.value() * self.unit_factor()
 
+    def set_reference(self, reference: str) -> None:
+        index = self.reference_combo.findData(reference)
+        if index >= 0:
+            self.reference_combo.setCurrentIndex(index)
+
     def set_value_mm(self, value_mm: float) -> None:
         self.value_spin.setValue(value_mm / self.unit_factor())
         self._emit_change()
@@ -97,9 +102,10 @@ class SizePanel(QGroupBox):
 
 
 class MaterialPanel(QGroupBox):
-    """Material selection (specification, 12.1; editors come in phase 3)."""
+    """Material selection with a profile editor (specification, 6.2, 12.1)."""
 
     material_changed = Signal(str)
+    edit_requested = Signal()
 
     def __init__(
         self,
@@ -112,7 +118,7 @@ class MaterialPanel(QGroupBox):
         layout.addWidget(self.combo)
         row = QHBoxLayout()
         self.edit_button = QPushButton("Uredi…")
-        self.edit_button.setEnabled(False)  # editor is phase 3
+        self.edit_button.clicked.connect(self.edit_requested.emit)
         row.addWidget(self.edit_button)
         container = QWidget()
         container.setLayout(row)
@@ -123,20 +129,30 @@ class MaterialPanel(QGroupBox):
         self.set_materials(materials or [])
 
     def set_materials(self, materials: list[MaterialProfile]) -> None:
+        current = self.current_material_id()
         self.combo.blockSignals(True)
         self.combo.clear()
         for material in materials:
             self.combo.addItem(material.name, material.id)
+        index = self.combo.findData(current)
+        if index >= 0:
+            self.combo.setCurrentIndex(index)
         self.combo.blockSignals(False)
+
+    def select_material(self, material_id: str) -> None:
+        index = self.combo.findData(material_id)
+        if index >= 0:
+            self.combo.setCurrentIndex(index)
 
     def current_material_id(self) -> str:
         return str(self.combo.currentData() or "")
 
 
 class BasePanel(QGroupBox):
-    """Base profile fields with live tab preview (specification, 12.1 and 8.3)."""
+    """Base profile fields with live clearance preview (specification, 12.1, 8.3)."""
 
     base_changed = Signal(dict)
+    edit_requested = Signal()
 
     def __init__(
         self,
@@ -153,8 +169,16 @@ class BasePanel(QGroupBox):
         self.tab_offset = _spin(-200.0, 200.0, 0.0, " mm")
         self.corner_radius = _spin(0.0, 20.0, 0.5, " mm")
 
+        self.edit_button = QPushButton("Uredi…")
+        self.edit_button.clicked.connect(self.edit_requested.emit)
+        profile_row = QWidget()
+        profile_row_layout = QHBoxLayout(profile_row)
+        profile_row_layout.setContentsMargins(0, 0, 0, 0)
+        profile_row_layout.addWidget(self.combo, 1)
+        profile_row_layout.addWidget(self.edit_button)
+
         form = QFormLayout(self)
-        form.addRow("Profil:", self.combo)
+        form.addRow("Profil:", profile_row)
         form.addRow("Dužina proreza:", self.slot_length)
         form.addRow("Debljina proreza:", self.slot_thickness)
         form.addRow("Širina jezička:", self.tab_width)
@@ -190,6 +214,28 @@ class BasePanel(QGroupBox):
 
     def current_base_id(self) -> str:
         return str(self.combo.currentData() or "")
+
+    def select_base(self, base_id: str | None) -> None:
+        index = self.combo.findData(base_id) if base_id is not None else -1
+        if index >= 0:
+            self.combo.setCurrentIndex(index)
+
+    def set_values(self, values: dict) -> None:
+        """Apply values from a saved project without emitting loops."""
+        self.blockSignals(True)
+        for key, widget in (
+            ("slot_length_mm", self.slot_length),
+            ("slot_thickness_mm", self.slot_thickness),
+            ("tab_width_mm", self.tab_width),
+            ("tab_height_mm", self.tab_height),
+            ("tab_fit_mm", self.tab_fit),
+            ("tab_offset_mm", self.tab_offset),
+            ("corner_radius_mm", self.corner_radius),
+        ):
+            if key in values:
+                widget.setValue(float(values[key]))
+        self.blockSignals(False)
+        self._emit_change()
 
     def values(self) -> dict:
         return {
@@ -249,6 +295,18 @@ class ContourPanel(QGroupBox):
             widget.valueChanged.connect(lambda _value: self._emit_change())
         for combo in (self.input_kind, self.kerf_mode):
             combo.currentIndexChanged.connect(lambda _index: self._emit_change())
+
+    def set_values(self, values: dict) -> None:
+        index = self.input_kind.findData(values.get("input_kind"))
+        if index >= 0:
+            self.input_kind.setCurrentIndex(index)
+        if "edge_inset_mm" in values:
+            self.edge_inset.setValue(float(values["edge_inset_mm"]))
+        index = self.kerf_mode.findData(values.get("kerf_mode"))
+        if index >= 0:
+            self.kerf_mode.setCurrentIndex(index)
+        if "simplify_tol_mm" in values:
+            self.smoothness.setValue(float(values["simplify_tol_mm"]))
 
     def values(self) -> dict:
         return {
