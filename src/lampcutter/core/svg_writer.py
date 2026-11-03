@@ -118,6 +118,62 @@ def write_cut_svg(
     return path
 
 
+def _bounds_mm(polygons: list[Polygon]) -> tuple[float, float, float, float]:
+    if not polygons:
+        raise ValueError("nema poligona")
+    bounds = [polygon.bounds for polygon in polygons]
+    return (
+        min(item[0] for item in bounds),
+        min(item[1] for item in bounds),
+        max(item[2] for item in bounds),
+        max(item[3] for item in bounds),
+    )
+
+
+def write_polygons_svg(
+    polygons: list[Polygon],
+    path: Path | str,
+    config: Config,
+    stroke: str | None = None,
+) -> Path:
+    """Write several polygons as one cut layer (used by the calibration sheet)."""
+    if not polygons:
+        raise ValueError("nema poligona")
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    min_x, min_y, max_x, max_y = _bounds_mm(polygons)
+    margin = config.svg_margin_mm
+    width_mm = max_x - min_x + 2 * margin
+    height_mm = max_y - min_y + 2 * margin
+    dx = margin - min_x
+    dy = margin - min_y
+    root = ET.Element(
+        "svg",
+        {
+            "xmlns": SVG_NAMESPACE,
+            "width": f"{_fmt(width_mm)}mm",
+            "height": f"{_fmt(height_mm)}mm",
+            "viewBox": f"0 0 {_fmt(width_mm)} {_fmt(height_mm)}",
+        },
+    )
+    group = ET.SubElement(
+        root,
+        "g",
+        {
+            "id": "cut-outer",
+            "fill": "none",
+            "stroke": stroke or config.cut_stroke,
+            "stroke-width": _fmt(config.cut_stroke_width_mm),
+        },
+    )
+    for polygon in polygons:
+        ET.SubElement(group, "path", {"d": polygon_path_data(polygon, dx, dy)})
+    ET.register_namespace("", SVG_NAMESPACE)
+    ET.ElementTree(root).write(path, encoding="utf-8", xml_declaration=True)
+    validate_svg(path, width_mm, height_mm)
+    return path
+
+
 def read_svg_size_mm(path: Path | str) -> tuple[float, float]:
     """Read the width and height of an SVG in millimetres."""
     root = ET.parse(Path(path)).getroot()

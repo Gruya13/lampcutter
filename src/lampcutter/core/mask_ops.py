@@ -111,6 +111,45 @@ def polygon_to_mask(
     return canvas.astype(bool)
 
 
+def refine_edge(image: np.ndarray, mask: np.ndarray, band_px: int) -> np.ndarray:
+    """Refine the mask edge with GrabCut inside a narrow band (specification, 7.4 step 5).
+
+    Pixels far outside the band are certain background, pixels well inside the
+    mask are certain foreground; only the band around the current edge is
+    re-estimated. Used for real photos (`input_kind = "photo"`).
+    """
+    if band_px <= 0:
+        raise ValueError("band_px must be positive")
+    array = np.asarray(image)
+    if array.ndim != 3 or array.shape[2] < 3:
+        raise ValueError("image must be H x W x 3")
+    binary = _check_mask(mask)
+    if not binary.any():
+        return binary
+    rgb = np.ascontiguousarray(array[:, :, :3].astype(np.uint8))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * band_px + 1, 2 * band_px + 1))
+    dilated = cv2.dilate(binary.astype(np.uint8), kernel) > 0
+    eroded = cv2.erode(binary.astype(np.uint8), kernel) > 0
+    band = dilated & ~eroded
+    grabcut_mask = np.full(binary.shape, cv2.GC_BGD, dtype=np.uint8)
+    grabcut_mask[eroded] = cv2.GC_FGD
+    grabcut_mask[band & binary] = cv2.GC_PR_FGD
+    grabcut_mask[band & ~binary] = cv2.GC_PR_BGD
+    background = np.zeros((1, 65), np.float64)
+    foreground = np.zeros((1, 65), np.float64)
+    cv2.grabCut(
+        cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR),
+        grabcut_mask,
+        None,
+        background,
+        foreground,
+        5,
+        cv2.GC_INIT_WITH_MASK,
+    )
+    refined = (grabcut_mask == cv2.GC_FGD) | (grabcut_mask == cv2.GC_PR_FGD)
+    return refined.astype(bool)
+
+
 def clean_mask(mask: np.ndarray, config: Config) -> np.ndarray:
     """Clean a raw SAM 2 mask into a solid, smooth single-component mask.
 

@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import argparse
+import subprocess
 import sys
 import warnings
 from pathlib import Path
 
 from lampcutter.config import Config
+from lampcutter.core import calibrate
 from lampcutter.core.pipeline import PipelineError, run_pipeline
-from lampcutter.models import Prompt
-from lampcutter.settings import AppSettings
+from lampcutter.models import MaterialProfile, Prompt
+from lampcutter.settings import AppSettings, save_materials
 
 
 def parse_point(value: str) -> tuple[int, int, int]:
@@ -101,7 +103,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run_parser.add_argument("--material", default="acrylic-3", help="id profila materijala")
     run_parser.add_argument(
-        "--base", default=None, help="id profila baze (jezičak je Faza 0b, ovde se ignoriše)"
+        "--base", default=None, help="id profila baze; dodaje jezičak i računa zazor"
     )
     run_parser.add_argument(
         "--input-kind",
@@ -136,13 +138,34 @@ def build_parser() -> argparse.ArgumentParser:
         help="snimi mask_raw/mask_clean/overlay/contour_preview",
     )
 
-    calibrate_parser = subparsers.add_parser("calibrate", help="kalibracioni SVG (Faza 0b)")
-    calibrate_parser.add_argument("--sizes", default="20,30,40")
-    calibrate_parser.add_argument("--out", type=Path, default=Path("kalibracija"))
+    calibrate_parser = subparsers.add_parser(
+        "calibrate", help="kalibracioni SVG za merenje kerfa (specifikacija, 7.9)"
+    )
+    calibrate_parser.add_argument("--sizes", default="20,30,40", help="nominalne veličine u mm")
+    calibrate_parser.add_argument(
+        "--measured",
+        default=None,
+        help="izmerene veličine posle rezanja (isti redosled), za računanje kerfa",
+    )
+    calibrate_parser.add_argument(
+        "--material", default=None, help="id profila u koji se upisuje izmereni kerf"
+    )
+    calibrate_parser.add_argument(
+        "--spacing", type=float, default=calibrate.DEFAULT_SPACING_MM, help="razmak između kvadrata"
+    )
+    calibrate_parser.add_argument("--config", type=Path, default=None, help="opcioni config.toml")
+    calibrate_parser.add_argument(
+        "--out", type=Path, default=Path("kalibracija"), help="izlazni direktorijum"
+    )
 
-    benchmark_parser = subparsers.add_parser("benchmark", help="SAM 2 benchmark (Faza 0b)")
-    benchmark_parser.add_argument("--images", type=Path, default=Path("tests/data"))
-    benchmark_parser.add_argument("--out", type=Path, default=Path("benchmark_report"))
+    benchmark_parser = subparsers.add_parser(
+        "benchmark", help="SAM 2 benchmark (specifikacija, 11.2); prosleđuje argumente skripti"
+    )
+    benchmark_parser.add_argument(
+        "benchmark_args",
+        nargs=argparse.REMAINDER,
+        help="argumenti za scripts/benchmark.py (npr. --images tests/data --out benchmark_report)",
+    )
     return parser
 
 
@@ -161,13 +184,8 @@ def _run_command(args: argparse.Namespace) -> int:
 
     settings = AppSettings.load()
     material = settings.material(args.material)
+    base = settings.base(args.base) if args.base is not None else None
     prompt = build_prompt(args.point, args.box)
-    if args.base is not None:
-        settings.base(args.base)  # validate the id early
-        print(
-            "Napomena: jezičak i baza su deo Faze 0b — --base se za sada ignoriše.",
-            file=sys.stderr,
-        )
     if prompt is None and args.mask_file is None:
         raise PipelineError("Daj --point/--box (SAM 2) ili --mask-file.")
 
@@ -177,6 +195,7 @@ def _run_command(args: argparse.Namespace) -> int:
         mask_file=args.mask_file,
         config=config,
         material=material,
+        base=base,
         input_kind=args.input_kind,
         height_mm=args.height_mm,
         reference=args.reference,
@@ -189,9 +208,66 @@ def _run_command(args: argparse.Namespace) -> int:
         f"Dimenzije: {result.scale.width_mm:.2f} x {result.scale.height_mm:.2f} mm "
         f"(mm/px = {result.scale.mm_per_px:.5f}), kerf = {result.cut_geometry.kerf_mm} mm"
     )
+    if result.clearance is not None:
+        clearance = result.clearance
+        print(
+            f"Prorez: efektivna dužina {clearance.effective_slot_length_mm:.2f} mm, "
+            f"zazor u ravni {clearance.planar_clearance_mm:+.2f} mm, "
+            f"po debljini {clearance.thickness_clearance_mm:+.2f} mm"
+        )
     for message in result.warnings:
         print(f"Upozorenje: {message}", file=sys.stderr)
     return 0
+
+
+def _calibrate_command(args: argparse.Namespace) -> int:
+    config = Config.from_toml(args.config) if args.config is not None else Config()
+    sizes = calibrate.parse_sizes(args.sizes)
+    out_dir = Path(args.out)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    svg_path = calibrate.build_calibration_svg(
+        sizes, out_dir / "kalibracija.svg", config, spacing_mm=args.spacing
+    )
+    print(f"Kalibracioni SVG: {svg_path}")
+    print("Odseci kvadrate, izmeri svaki pomičnim merilom i unesi --measured ...")
+
+    if args.measured is None:
+        return 0
+    measured = calibrate.parse_sizes(args.measured)
+    measurements = calibrate.measurements_from_lists(sizes, measured)
+    for item in measurements:
+        print(
+            f"  {item.nominal_mm:.2f} mm - {item.measured_mm:.2f} mm = kerf {item.kerf_mm:+.3f} mm"
+        )
+    kerf = calibrate.average_kerf(measurements)
+    print(f"Prosečan kerf: {kerf:.3f} mm")
+
+    if args.material is not None:
+        settings = AppSettings.load()
+        material = settings.material(args.material)
+        updated = MaterialProfile(
+            id=material.id,
+            name=material.name,
+            thickness_mm=material.thickness_mm,
+            kerf_mm=kerf,
+            min_feature_mm=material.min_feature_mm,
+            notes=material.notes,
+        )
+        materials = [updated if item.id == material.id else item for item in settings.materials]
+        path = save_materials(materials)
+        print(f"Kerf upisan u profil {material.id}: {path}")
+    return 0
+
+
+def _benchmark_command(args: argparse.Namespace) -> int:
+    script = Path(__file__).resolve().parents[2] / "scripts" / "benchmark.py"
+    if not script.exists():
+        raise PipelineError("scripts/benchmark.py nije pronađen (pokreni iz izvornog repoa).")
+    completed = subprocess.run(
+        [sys.executable, str(script), *args.benchmark_args],
+        check=False,
+    )
+    return completed.returncode
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -201,8 +277,10 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "run":
             return _run_command(args)
-        if args.command in ("calibrate", "benchmark"):
-            raise PipelineError(f"Komanda {args.command!r} dolazi u Fazi 0b.")
+        if args.command == "calibrate":
+            return _calibrate_command(args)
+        if args.command == "benchmark":
+            return _benchmark_command(args)
         raise PipelineError(f"Nepoznata komanda {args.command!r}")
     except (PipelineError, FileNotFoundError, KeyError, ValueError) as error:
         print(f"Greška: {error}", file=sys.stderr)

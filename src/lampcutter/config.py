@@ -34,6 +34,9 @@ class Config:
     mask_min_component_frac: float = 0.001
     mask_hole_min_area_mm2: float = 4.0
     mask_smooth_sigma_px: float = 2.0
+    # PROVISIONAL (specification, 17): edge refinement band for real photos.
+    refine_edge_photo: bool = True
+    refine_edge_band_px: int = 8
     potrace_turdsize: int = 20
     potrace_alphamax: float = 1.0
     potrace_opttolerance: float = 0.2
