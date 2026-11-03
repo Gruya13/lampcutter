@@ -65,8 +65,12 @@ uv run --no-sync python scripts/benchmark.py --images tests/data --variants tiny
 Uputstvo za pokretanje na drugoj mašini (Mac MPS / CUDA, za collaboratora):
 [docs/benchmark/UPUTSTVO-ZA-AGENTA.md](docs/benchmark/UPUTSTVO-ZA-AGENTA.md).
 
-Prvi rezultat (CPU, sintetički mockupi) je u
-[docs/benchmark/2026-11-03-cpu.md](docs/benchmark/2026-11-03-cpu.md):
+Rezultati (sintetički mockupi, isti uzorci za obe platforme):
+
+- **CUDA (RTX 3050 Laptop, 4 GB)** — [2026-11-03-cuda-rtx3050.md](docs/benchmark/2026-11-03-cuda-rtx3050.md):
+  `set_image` 0,03 s (**~85× brže od CPU**), `large` staje u 4 GB VRAM (1451 MB),
+  end-to-end ~1 s po slici posle učitavanja modela.
+- **CPU (16 jezgara)** — [2026-11-03-cpu.md](docs/benchmark/2026-11-03-cpu.md):
 `small` je najbolji balans — set_image 2,5 s, predict 0,07 s, **3,5 s end-to-end**,
 ispod cilja od 15 s iz spec 13.4. Na CUDA 4 GB i Mac MPS benchmark se još pokreće
 (skripta detektuje uređaj automatski).

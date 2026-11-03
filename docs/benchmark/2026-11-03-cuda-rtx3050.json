@@ -1,0 +1,180 @@
+{
+  "environment": {
+    "generated_at": "2026-11-03T08:38:06.837626+00:00",
+    "python": "3.12.16",
+    "platform": "Linux-7.2.8-9-omarchy-x86_64-with-glibc2.44",
+    "machine": "x86_64",
+    "processor": "",
+    "cpu_count": 16,
+    "ram_gb": 15.030529022216797,
+    "torch_available": true,
+    "torch": "2.14.1+cu130",
+    "cuda_available": true,
+    "mps_available": false,
+    "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+    "vram_gb": 3.73236083984375
+  },
+  "device": "cuda",
+  "variants": [
+    {
+      "variant": "tiny",
+      "resolved_variant": "tiny",
+      "device": "cuda",
+      "resolved_device": "cuda",
+      "load_s": 5.325852032001421,
+      "images": [
+        {
+          "image": "tests/data/figura8.png",
+          "set_image_s": 0.6727913929935312,
+          "predict_s_mean": 0.08988889833077944,
+          "predict_s_min": 0.010217170995019842,
+          "score": 0.9949895739555359,
+          "peak_vram_mb": 596.83740234375,
+          "mean_edge_deviation_mm": 0.17890102691478557,
+          "hausdorff95_mm": 0.36036036036036034
+        },
+        {
+          "image": "tests/data/ploca.png",
+          "set_image_s": 0.06103818799601868,
+          "predict_s_mean": 0.056527534000148684,
+          "predict_s_min": 0.009909380998578854,
+          "score": 0.9854060411453247,
+          "peak_vram_mb": 596.83740234375,
+          "mean_edge_deviation_mm": 0.24391143769025803,
+          "hausdorff95_mm": 0.4119187295436859
+        },
+        {
+          "image": "tests/data/srce.png",
+          "set_image_s": 0.032247308001387864,
+          "predict_s_mean": 0.057898069331713486,
+          "predict_s_min": 0.010016098996857181,
+          "score": 0.9937224984169006,
+          "peak_vram_mb": 596.83740234375,
+          "mean_edge_deviation_mm": 0.17093192259076218,
+          "hausdorff95_mm": 0.49627791563275436
+        }
+      ],
+      "peak_ram_mb": 1834.8359375
+    },
+    {
+      "variant": "small",
+      "resolved_variant": "small",
+      "device": "cuda",
+      "resolved_device": "cuda",
+      "load_s": 0.4917807179954252,
+      "images": [
+        {
+          "image": "tests/data/figura8.png",
+          "set_image_s": 0.029062002002319787,
+          "predict_s_mean": 0.06630517200149673,
+          "predict_s_min": 0.010143209001398645,
+          "score": 0.994584858417511,
+          "peak_vram_mb": 623.85107421875,
+          "mean_edge_deviation_mm": 0.2071902558610246,
+          "hausdorff95_mm": 0.3958378181801186
+        },
+        {
+          "image": "tests/data/ploca.png",
+          "set_image_s": 0.02934555699903285,
+          "predict_s_mean": 0.0665726629983207,
+          "predict_s_min": 0.009804481000173837,
+          "score": 0.9857450127601624,
+          "peak_vram_mb": 623.85107421875,
+          "mean_edge_deviation_mm": 0.23080416396260262,
+          "hausdorff95_mm": 0.375
+        },
+        {
+          "image": "tests/data/srce.png",
+          "set_image_s": 0.02951736599789001,
+          "predict_s_mean": 0.06707412133740338,
+          "predict_s_min": 0.010405951004941016,
+          "score": 0.9953145980834961,
+          "peak_vram_mb": 623.85107421875,
+          "mean_edge_deviation_mm": 0.2040069467080734,
+          "hausdorff95_mm": 0.49627791563275436
+        }
+      ],
+      "peak_ram_mb": 2068.0625
+    },
+    {
+      "variant": "base_plus",
+      "resolved_variant": "base_plus",
+      "device": "cuda",
+      "resolved_device": "cuda",
+      "load_s": 0.7425908470031573,
+      "images": [
+        {
+          "image": "tests/data/figura8.png",
+          "set_image_s": 0.035142774002451915,
+          "predict_s_mean": 0.1077813549976175,
+          "predict_s_min": 0.010397639001894277,
+          "score": 0.9977498650550842,
+          "peak_vram_mb": 807.30224609375,
+          "mean_edge_deviation_mm": 0.2173437621142413,
+          "hausdorff95_mm": 0.3958378181801186
+        },
+        {
+          "image": "tests/data/ploca.png",
+          "set_image_s": 0.032734868000261486,
+          "predict_s_mean": 0.10930458599856745,
+          "predict_s_min": 0.010310058998584282,
+          "score": 0.9771826863288879,
+          "peak_vram_mb": 807.30224609375,
+          "mean_edge_deviation_mm": 3.3467575013637543,
+          "hausdorff95_mm": 19.494021892547607
+        },
+        {
+          "image": "tests/data/srce.png",
+          "set_image_s": 0.032399561001511756,
+          "predict_s_mean": 0.10928698633263896,
+          "predict_s_min": 0.010673441996914335,
+          "score": 0.9959297776222229,
+          "peak_vram_mb": 807.30224609375,
+          "mean_edge_deviation_mm": 0.2806035667731803,
+          "hausdorff95_mm": 0.49627791563275436
+        }
+      ],
+      "peak_ram_mb": 2334.0234375
+    },
+    {
+      "variant": "large",
+      "resolved_variant": "large",
+      "device": "cuda",
+      "resolved_device": "cuda",
+      "load_s": 2.160274624999147,
+      "images": [
+        {
+          "image": "tests/data/figura8.png",
+          "set_image_s": 0.04103504399972735,
+          "predict_s_mean": 0.2546100579978277,
+          "predict_s_min": 0.010691878997022286,
+          "score": 0.9971082806587219,
+          "peak_vram_mb": 1450.95849609375,
+          "mean_edge_deviation_mm": 0.21261846697008285,
+          "hausdorff95_mm": 0.3958378181801186
+        },
+        {
+          "image": "tests/data/ploca.png",
+          "set_image_s": 0.03776788499817485,
+          "predict_s_mean": 0.2554960143340092,
+          "predict_s_min": 0.0109422599998652,
+          "score": 0.9762909412384033,
+          "peak_vram_mb": 1450.95849609375,
+          "mean_edge_deviation_mm": 1.0017557423561811,
+          "hausdorff95_mm": 12.187063694000244
+        },
+        {
+          "image": "tests/data/srce.png",
+          "set_image_s": 0.03977176199987298,
+          "predict_s_mean": 0.25361259033282596,
+          "predict_s_min": 0.010355106998758856,
+          "score": 0.9970635771751404,
+          "peak_vram_mb": 1450.95849609375,
+          "mean_edge_deviation_mm": 0.14334164985060396,
+          "hausdorff95_mm": 0.49627791563275436
+        }
+      ],
+      "peak_ram_mb": 3429.6875
+    }
+  ]
+}

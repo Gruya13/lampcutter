@@ -150,6 +150,9 @@ def benchmark_variant(
     load_start = time.perf_counter()
     segmenter.load()
     load_seconds = time.perf_counter() - load_start
+    # The OOM fallback chain may have stepped the model down; record what actually ran.
+    resolved_variant = segmenter.variant
+    resolved_device = segmenter._resolved_device or device
 
     image_results = []
     for image_path in images:
@@ -207,7 +210,9 @@ def benchmark_variant(
 
     return {
         "variant": variant,
+        "resolved_variant": resolved_variant,
         "device": device,
+        "resolved_device": resolved_device,
         "load_s": load_seconds,
         "images": image_results,
         "peak_ram_mb": peak_ram_mb(),
