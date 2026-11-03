@@ -1,0 +1,118 @@
+{
+  "schema": 1,
+  "suite": "brush",
+  "author": "agy",
+  "source": "wiki:.wiki/shared/artifacts/tests-brush.py",
+  "entry": "test_brush_spec.py",
+  "cases": [
+    {
+      "id": "test_config_brush_radius_default"
+    },
+    {
+      "id": "test_config_brush_radius_valid_range"
+    },
+    {
+      "id": "test_config_brush_radius_too_low"
+    },
+    {
+      "id": "test_config_brush_radius_too_high"
+    },
+    {
+      "id": "test_paint_stroke_returns_new_mask_original_unchanged"
+    },
+    {
+      "id": "test_paint_stroke_single_point_is_circle"
+    },
+    {
+      "id": "test_paint_stroke_add_fills_gap"
+    },
+    {
+      "id": "test_paint_stroke_remove_clears_pixels"
+    },
+    {
+      "id": "test_paint_stroke_polyline_connects_points"
+    },
+    {
+      "id": "test_paint_stroke_clipped_outside_bounds_safe"
+    },
+    {
+      "id": "test_paint_stroke_invalid_radius"
+    },
+    {
+      "id": "test_paint_stroke_empty_points"
+    },
+    {
+      "id": "test_paint_stroke_invalid_mask_dimensions"
+    },
+    {
+      "id": "test_revectorize_mask_generates_result_and_svg"
+    },
+    {
+      "id": "test_revectorize_mask_identical_mask_gives_same_svg_hash"
+    },
+    {
+      "id": "test_revectorize_mask_different_mask_gives_different_bbox"
+    },
+    {
+      "id": "test_revectorize_mask_empty_mask_raises_pipeline_error"
+    },
+    {
+      "id": "test_revectorize_mask_wrong_dimensions_raises_pipeline_error"
+    },
+    {
+      "id": "test_revectorize_mask_resizes_mismatched_mask"
+    },
+    {
+      "id": "test_canvas_set_mode_brush"
+    },
+    {
+      "id": "test_canvas_set_brush_valid_and_invalid"
+    },
+    {
+      "id": "test_canvas_brush_stroke_begin_extend_end"
+    },
+    {
+      "id": "test_canvas_brush_stroke_subpixel_displacement_ignored"
+    },
+    {
+      "id": "test_canvas_brush_extend_before_begin_raises"
+    },
+    {
+      "id": "test_canvas_brush_end_without_begin_raises"
+    },
+    {
+      "id": "test_canvas_brush_mode_does_not_touch_prompt_or_polygon"
+    },
+    {
+      "id": "test_brush_panel_construction_and_getters"
+    },
+    {
+      "id": "test_brush_panel_brush_changed_signal"
+    },
+    {
+      "id": "test_brush_panel_undo_requested_signal"
+    },
+    {
+      "id": "test_brush_panel_set_from_config"
+    },
+    {
+      "id": "test_main_window_brush_stroke_without_mask_sets_last_error"
+    },
+    {
+      "id": "test_main_window_brush_stroke_updates_mask_and_history"
+    },
+    {
+      "id": "test_main_window_brush_history_max_ten"
+    },
+    {
+      "id": "test_main_window_brush_undo_restores_previous_mask"
+    },
+    {
+      "id": "test_main_window_load_image_resets_brush_state"
+    },
+    {
+      "id": "test_main_window_brush_debounce_calls_revectorize"
+    }
+  ],
+  "source_text": "\"\"\"\nNezavisan test set za v1.1 (ručna četkica za retuš maske) — Lampcutter\nAutor: agy (verifikaciona nit / crveni tim)\nIzvori istine: LAMPCUTTER_SPEC.md (12.1, 17) i docs/api-brush.md\n\"\"\"\nimport os\nos.environ.setdefault(\"QT_QPA_PLATFORM\", \"offscreen\")\n\nimport math\nimport pathlib\nimport pytest\nfrom PIL import Image\nimport numpy as np\n\npytest.importorskip(\"PySide6\")\nfrom PySide6.QtWidgets import QApplication\n\nfrom lampcutter.config import Config\nfrom lampcutter.models import MaterialProfile, BaseProfile\nfrom lampcutter.core import mask_ops, io_utils\nfrom lampcutter.core.pipeline import revectorize_mask, PipelineResult, PipelineError\nfrom lampcutter.ui.canvas import Canvas\nfrom lampcutter.ui.panels import BrushPanel\nfrom lampcutter.ui.main_window import MainWindow\n\n\n@pytest.fixture(scope=\"session\")\ndef qapp():\n    app = QApplication.instance()\n    if app is None:\n        app = QApplication([])\n    return app\n\n\n# ============================================================================\n# 1. Config.brush_radius_px (api-brush)\n# ============================================================================\n\ndef test_config_brush_radius_default():\n    cfg = Config()\n    assert cfg.brush_radius_px == 25\n\ndef test_config_brush_radius_valid_range():\n    cfg_min = Config(brush_radius_px=1)\n    assert cfg_min.brush_radius_px == 1\n    cfg_max = Config(brush_radius_px=500)\n    assert cfg_max.brush_radius_px == 500\n\ndef test_config_brush_radius_too_low():\n    with pytest.raises(ValueError):\n        Config(brush_radius_px=0)\n    with pytest.raises(ValueError):\n        Config(brush_radius_px=-10)\n\ndef test_config_brush_radius_too_high():\n    with pytest.raises(ValueError):\n        Config(brush_radius_px=501)\n    with pytest.raises(ValueError):\n        Config(brush_radius_px=1000)\n\n\n# ============================================================================\n# 2. mask_ops.paint_stroke (api-brush)\n# ============================================================================\n\ndef test_paint_stroke_returns_new_mask_original_unchanged():\n    original = np.zeros((100, 100), dtype=bool)\n    res = mask_ops.paint_stroke(original, [(50.0, 50.0)], radius_px=10.0, add=True)\n    assert res is not original\n    assert not np.array_equal(res, original)\n    assert original.sum() == 0\n    assert res.dtype == bool\n    assert res.shape == (100, 100)\n\ndef test_paint_stroke_single_point_is_circle():\n    mask = np.zeros((120, 120), dtype=bool)\n    res = mask_ops.paint_stroke(mask, [(60.0, 60.0)], radius_px=15.0, add=True)\n    expected_area = math.pi * (15.0 ** 2)\n    actual_area = res.sum()\n    assert actual_area == pytest.approx(expected_area, rel=0.15)\n    assert res[60, 60] is True or res[60, 60] == 1\n\ndef test_paint_stroke_add_fills_gap():\n    mask = np.zeros((100, 100), dtype=bool)\n    assert mask[50, 50] is False or mask[50, 50] == 0\n    res = mask_ops.paint_stroke(mask, [(50.0, 50.0)], radius_px=8.0, add=True)\n    assert res[50, 50] is True or res[50, 50] == 1\n\ndef test_paint_stroke_remove_clears_pixels():\n    mask = np.ones((100, 100), dtype=bool)\n    res = mask_ops.paint_stroke(mask, [(50.0, 50.0)], radius_px=12.0, add=False)\n    assert res[50, 50] is False or res[50, 50] == 0\n    assert res.sum() < mask.sum()\n\ndef test_paint_stroke_polyline_connects_points():\n    mask = np.zeros((100, 100), dtype=bool)\n    pts = [(20.0, 50.0), (80.0, 50.0)]\n    res = mask_ops.paint_stroke(mask, pts, radius_px=5.0, add=True)\n    # Provera da je duž linije središnja tačka popunjena\n    assert res[50, 20] is True or res[50, 20] == 1\n    assert res[50, 50] is True or res[50, 50] == 1\n    assert res[50, 80] is True or res[50, 80] == 1\n\ndef test_paint_stroke_clipped_outside_bounds_safe():\n    mask = np.zeros((100, 100), dtype=bool)\n    pts = [(-20.0, -20.0), (120.0, 120.0)]\n    res = mask_ops.paint_stroke(mask, pts, radius_px=10.0, add=True)\n    assert res.shape == (100, 100)\n    assert res.dtype == bool\n\ndef test_paint_stroke_invalid_radius():\n    mask = np.zeros((50, 50), dtype=bool)\n    with pytest.raises(ValueError):\n        mask_ops.paint_stroke(mask, [(25.0, 25.0)], radius_px=0.0, add=True)\n    with pytest.raises(ValueError):\n        mask_ops.paint_stroke(mask, [(25.0, 25.0)], radius_px=-5.0, add=True)\n\ndef test_paint_stroke_empty_points():\n    mask = np.zeros((50, 50), dtype=bool)\n    with pytest.raises(ValueError):\n        mask_ops.paint_stroke(mask, [], radius_px=10.0, add=True)\n\ndef test_paint_stroke_invalid_mask_dimensions():\n    mask_1d = np.zeros(100, dtype=bool)\n    with pytest.raises(ValueError):\n        mask_ops.paint_stroke(mask_1d, [(10.0, 10.0)], radius_px=5.0, add=True)\n    mask_3d = np.zeros((50, 50, 3), dtype=bool)\n    with pytest.raises(ValueError):\n        mask_ops.paint_stroke(mask_3d, [(10.0, 10.0)], radius_px=5.0, add=True)\n\n## 2026-11-03T13:53:55.398Z — agy\n\n\n\n# ============================================================================\n# 3. pipeline.revectorize_mask (api-brush)\n# ============================================================================\n\ndef _get_srce_image(tmp_path):\n    p = pathlib.Path(\"tests/data/srce.png\")\n    if p.is_file():\n        return p\n    alt = tmp_path / \"mock_srce.png\"\n    Image.new(\"RGB\", (400, 400), (30, 30, 30)).save(alt)\n    return alt\n\ndef test_revectorize_mask_generates_result_and_svg(tmp_path):\n    img_path = _get_srce_image(tmp_path)\n    im = Image.open(img_path)\n    w, h = im.size\n    mask = np.zeros((h, w), dtype=bool)\n    mask[h // 4 : 3 * h // 4, w // 4 : 3 * w // 4] = True\n\n    mat = MaterialProfile(id=\"acrylic-3\", name=\"Akril 3mm\", thickness_mm=3.0, kerf_mm=0.18)\n    base = BaseProfile(id=\"oval-wood\", name=\"Oval\", slot_length_mm=80.0, slot_thickness_mm=3.4, tab_width_mm=60.0, tab_height_mm=10.0)\n\n    out_dir = tmp_path / \"rev_out1\"\n    res = revectorize_mask(img_path, mask, material=mat, base=base, height_mm=100.0, out_dir=out_dir)\n\n    assert isinstance(res, PipelineResult)\n    assert res.svg_path.exists()\n    assert res.mask_clean is not None\n    assert res.mask_clean.shape == mask.shape\n\ndef test_revectorize_mask_identical_mask_gives_same_svg_hash(tmp_path):\n    img_path = _get_srce_image(tmp_path)\n    im = Image.open(img_path)\n    w, h = im.size\n    mask = np.zeros((h, w), dtype=bool)\n    mask[h // 4 : 3 * h // 4, w // 4 : 3 * w // 4] = True\n\n    mat = MaterialProfile(id=\"acrylic-3\", name=\"Akril 3mm\", thickness_mm=3.0, kerf_mm=0.18)\n    base = BaseProfile(id=\"oval-wood\", name=\"Oval\", slot_length_mm=80.0, slot_thickness_mm=3.4, tab_width_mm=60.0, tab_height_mm=10.0)\n\n    out1 = tmp_path / \"hash_out1\"\n    out2 = tmp_path / \"hash_out2\"\n    res1 = revectorize_mask(img_path, mask, material=mat, base=base, height_mm=100.0, out_dir=out1)\n    res2 = revectorize_mask(img_path, mask, material=mat, base=base, height_mm=100.0, out_dir=out2)\n\n    h1 = io_utils.file_sha256(res1.svg_path)\n    h2 = io_utils.file_sha256(res2.svg_path)\n    assert h1 == h2\n\ndef test_revectorize_mask_different_mask_gives_different_bbox(tmp_path):\n    img_path = _get_srce_image(tmp_path)\n    im = Image.open(img_path)\n    w, h = im.size\n\n    mask1 = np.zeros((h, w), dtype=bool)\n    mask1[h // 3 : 2 * h // 3, w // 3 : 2 * w // 3] = True\n\n    mask2 = np.zeros((h, w), dtype=bool)\n    mask2[h // 6 : 5 * h // 6, w // 6 : 5 * w // 6] = True\n\n    mat = MaterialProfile(id=\"acrylic-3\", name=\"Akril 3mm\", thickness_mm=3.0, kerf_mm=0.18)\n    res1 = revectorize_mask(img_path, mask1, material=mat, height_mm=100.0, out_dir=tmp_path / \"diff1\")\n    res2 = revectorize_mask(img_path, mask2, material=mat, height_mm=100.0, out_dir=tmp_path / \"diff2\")\n\n    assert res1.cut_geometry.bbox_nominal_mm != res2.cut_geometry.bbox_nominal_mm\n\ndef test_revectorize_mask_empty_mask_raises_pipeline_error(tmp_path):\n    img_path = _get_srce_image(tmp_path)\n    mask = np.zeros((200, 200), dtype=bool)\n    mat = MaterialProfile(id=\"acrylic-3\", name=\"Akril 3mm\", thickness_mm=3.0, kerf_mm=0.18)\n    with pytest.raises(PipelineError):\n        revectorize_mask(img_path, mask, material=mat, height_mm=100.0, out_dir=tmp_path / \"empty_out\")\n\ndef test_revectorize_mask_wrong_dimensions_raises_pipeline_error(tmp_path):\n    img_path = _get_srce_image(tmp_path)\n    mat = MaterialProfile(id=\"acrylic-3\", name=\"Akril 3mm\", thickness_mm=3.0, kerf_mm=0.18)\n    with pytest.raises(PipelineError):\n        revectorize_mask(img_path, np.zeros((50,), dtype=bool), material=mat, height_mm=100.0, out_dir=tmp_path / \"bad1d\")\n    with pytest.raises(PipelineError):\n        revectorize_mask(img_path, np.zeros((50, 50, 2), dtype=bool), material=mat, height_mm=100.0, out_dir=tmp_path / \"bad3d\")\n\ndef test_revectorize_mask_resizes_mismatched_mask(tmp_path):\n    img_path = _get_srce_image(tmp_path)\n    im = Image.open(img_path)\n    w_orig, h_orig = im.size\n\n    # Manja maska (100x100)\n    small_mask = np.zeros((100, 100), dtype=bool)\n    small_mask[25:75, 25:75] = True\n\n    mat = MaterialProfile(id=\"acrylic-3\", name=\"Akril 3mm\", thickness_mm=3.0, kerf_mm=0.18)\n    res = revectorize_mask(img_path, small_mask, material=mat, height_mm=100.0, out_dir=tmp_path / \"rescaled\")\n    assert res.svg_path.exists()\n    assert res.mask_clean.shape == (h_orig, w_orig)\n\n\n# ============================================================================\n# 4. Canvas brush režim (api-brush)\n# ============================================================================\n\ndef test_canvas_set_mode_brush(qapp):\n    c = Canvas()\n    c.set_mode(Canvas.MODE_BRUSH)\n    assert c.mode == \"brush\" or c.mode == Canvas.MODE_BRUSH\n    c.set_mode(\"brush\")\n    with pytest.raises(ValueError):\n        c.set_mode(\"nepoznat_rezim\")\n\ndef test_canvas_set_brush_valid_and_invalid(qapp):\n    c = Canvas()\n    c.set_brush(15, add=False)\n    assert c.brush_radius_px == 15\n    assert c.brush_add is False\n    c.set_brush(25, add=True)\n    assert c.brush_radius_px == 25\n    assert c.brush_add is True\n\n    with pytest.raises(ValueError):\n        c.set_brush(0)\n    with pytest.raises(ValueError):\n        c.set_brush(-10)\n\ndef test_canvas_brush_stroke_begin_extend_end(qapp):\n    c = Canvas()\n    c.set_mode(Canvas.MODE_BRUSH)\n    finished = []\n    c.brush_stroke_finished.connect(lambda pts, add, rad: finished.append((pts, add, rad)))\n\n    c.begin_brush_stroke((10.0, 10.0), add=True)\n    c.extend_brush_stroke((20.0, 20.0))\n    c.extend_brush_stroke((30.0, 30.0))\n    pts, add, rad = c.end_brush_stroke()\n\n    assert len(pts) == 3\n    assert add is True\n    assert rad == c.brush_radius_px\n    assert len(finished) == 1\n    assert finished[0] == (pts, add, rad)\n\ndef test_canvas_brush_stroke_subpixel_displacement_ignored(qapp):\n    c = Canvas()\n    c.begin_brush_stroke((10.0, 10.0), add=True)\n    # Pomeraj manji od 0.5 px\n    c.extend_brush_stroke((10.2, 10.2))\n    pts, _, _ = c.end_brush_stroke()\n    assert len(pts) == 1\n\ndef test_canvas_brush_extend_before_begin_raises(qapp):\n    c = Canvas()\n    with pytest.raises(ValueError):\n        c.extend_brush_stroke((10.0, 10.0))\n\ndef test_canvas_brush_end_without_begin_raises(qapp):\n    c = Canvas()\n    with pytest.raises(ValueError):\n        c.end_brush_stroke()\n\ndef test_canvas_brush_mode_does_not_touch_prompt_or_polygon(qapp):\n    c = Canvas()\n    c.set_mode(\"brush\")\n    assert c.prompt_builder.is_empty\n    c.begin_brush_stroke((5.0, 5.0), add=True)\n    c.extend_brush_stroke((25.0, 25.0))\n    c.end_brush_stroke()\n\n    assert c.prompt_builder.is_empty\n    assert len(c.polygon_tool.points) == 0\n\n\n## 2026-11-03T13:54:23.864Z — agy\n\n\n\n# ============================================================================\n# 5. BrushPanel (api-brush)\n# ============================================================================\n\ndef test_brush_panel_construction_and_getters(qapp):\n    p = BrushPanel()\n    assert hasattr(p, \"radius_spin\")\n    assert hasattr(p, \"mode_combo\")\n    assert hasattr(p, \"undo_button\")\n    assert isinstance(p.radius_px(), int)\n    assert isinstance(p.add_mode(), bool)\n\ndef test_brush_panel_brush_changed_signal(qapp):\n    p = BrushPanel()\n    changed = []\n    p.brush_changed.connect(lambda rad, add: changed.append((rad, add)))\n\n    p.radius_spin.setValue(45)\n    assert len(changed) >= 1\n    assert changed[-1][0] == 45\n\ndef test_brush_panel_undo_requested_signal(qapp):\n    p = BrushPanel()\n    undo_called = []\n    p.undo_requested.connect(lambda: undo_called.append(True))\n    p.undo_button.click()\n    assert undo_called == [True]\n\ndef test_brush_panel_set_from_config(qapp):\n    p = BrushPanel()\n    cfg = Config(brush_radius_px=38)\n    p.set_from_config(cfg)\n    assert p.radius_px() == 38\n\n\n# ============================================================================\n# 6. MainWindow brush integracija (api-brush)\n# ============================================================================\n\ndef test_main_window_brush_stroke_without_mask_sets_last_error(qapp):\n    win = MainWindow()\n    win.brush_mask = None\n    win._on_brush_stroke([(10.0, 10.0)], True, 10)\n    assert getattr(win, \"last_error\", None) is not None\n\ndef test_main_window_brush_stroke_updates_mask_and_history(qapp):\n    win = MainWindow()\n    initial_mask = np.zeros((100, 100), dtype=bool)\n    win.brush_mask = initial_mask.copy()\n    win.brush_history = []\n\n    win._on_brush_stroke([(50.0, 50.0)], True, 15)\n\n    assert len(win.brush_history) == 1\n    assert win.brush_history[0].sum() == 0\n    assert win.brush_mask.sum() > 0\n\ndef test_main_window_brush_history_max_ten(qapp):\n    win = MainWindow()\n    win.brush_mask = np.zeros((100, 100), dtype=bool)\n    win.brush_history = []\n\n    for i in range(15):\n        win._on_brush_stroke([(float(i * 5), 50.0)], True, 5)\n\n    assert len(win.brush_history) <= 10\n\ndef test_main_window_brush_undo_restores_previous_mask(qapp):\n    win = MainWindow()\n    win.canvas.set_mode(\"brush\")\n    m0 = np.zeros((100, 100), dtype=bool)\n    win.brush_mask = m0.copy()\n    win.brush_history = []\n\n    win._on_brush_stroke([(20.0, 20.0)], True, 10)\n    m1 = win.brush_mask.copy()\n    assert m1.sum() > 0\n\n    win._on_brush_stroke([(60.0, 60.0)], True, 10)\n    m2 = win.brush_mask.copy()\n    assert m2.sum() > m1.sum()\n\n    win.undo()\n    assert np.array_equal(win.brush_mask, m1)\n\ndef test_main_window_load_image_resets_brush_state(qapp, tmp_path):\n    win = MainWindow()\n    win.brush_mask = np.ones((50, 50), dtype=bool)\n    win.brush_history = [np.zeros((50, 50), dtype=bool)]\n\n    img_path = tmp_path / \"fresh_img.png\"\n    Image.new(\"RGB\", (80, 80), (10, 20, 30)).save(img_path)\n    win.load_image(str(img_path))\n\n    assert win.brush_mask is None or len(win.brush_history) == 0\n    assert len(win.brush_history) == 0\n\ndef test_main_window_brush_debounce_calls_revectorize(qapp, monkeypatch):\n    win = MainWindow()\n    win.brush_mask = np.zeros((100, 100), dtype=bool)\n    win.brush_history = []\n\n    revectorize_calls = []\n    import lampcutter.ui.main_window as mw_mod\n    monkeypatch.setattr(mw_mod, \"revectorize_mask\", lambda *args, **kwargs: revectorize_calls.append(True))\n\n    win._on_brush_stroke([(30.0, 30.0)], True, 10)\n\n    # Obrađujemo event loop (debounce 250 ms)\n    import time\n    for _ in range(35):\n        QApplication.processEvents()\n        time.sleep(0.01)\n\n    # Worker ili revectorize je pozvan\n    assert len(revectorize_calls) >= 1 or hasattr(win, \"runner\")\n\n"
+}

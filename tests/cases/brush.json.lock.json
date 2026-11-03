@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "casesFile": "brush.json",
+  "casesSha256": "09e2aa2fe8d0a3fdd038604325565a9c162aa70ea837374eea94504c1862c093",
+  "cases": 36,
+  "entry": "test_brush_spec.py",
+  "gitRel": "tests/cases/brush.json",
+  "gitState": "clean",
+  "gitRevision": "1dd64b1cee5b06c6f20f037c1b595af019f132bf",
+  "lockedAt": "2026-11-03T13:55:07.963Z",
+  "lockedBy": "agy",
+  "relocks": []
+}
