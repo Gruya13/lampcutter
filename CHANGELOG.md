@@ -34,6 +34,8 @@ Format: Keep a Changelog. Faze iz `LAMPCUTTER_SPEC.md` (odeljak 16).
   `scripts/run_cases.py` i API ugovor `docs/api-phase0a.md`.
 - GitHub: privatni repo kao `main`; lokalni repo je staging.
 
+## v0.5.0 — ručna četkica (2026-11-03)
+
 ### Dodato — v1.1 (ručna četkica)
 
 - `mask_ops.paint_stroke`: okrugla četkica duž poteza, dodaje (`add=True`) ili
