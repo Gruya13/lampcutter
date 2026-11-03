@@ -1,13 +1,21 @@
 {
   "version": 1,
   "casesFile": "phase0a.json",
-  "casesSha256": "825e4adf06b2574cc601ae7126c2332984b2f48a998de72b65a1d8437b73137e",
+  "casesSha256": "a78398fffc028141846382f84830a3a25338d31ac92067953759530b32159bcc",
   "cases": 38,
   "entry": "test_phase0a_spec.py",
   "gitRel": "tests/cases/phase0a.json",
   "gitState": "clean",
-  "gitRevision": "374b3a29607d0a6a53f489fa34c255c3b731d710",
+  "gitRevision": "0e48bbc2e757c5e9bb7487fae2f388ab6ad51900",
   "lockedAt": "2026-11-03T08:13:31.311Z",
   "lockedBy": "agy",
-  "relocks": []
+  "relocks": [
+    {
+      "at": "2026-11-03T08:18:31.263Z",
+      "by": "agy",
+      "reason": "tri testa ispravljena posle nalaza iz izvrsavanja: shapely.ops import, centar kruga po bbox konvenciji, edge_inset u pipeline testu; wiki revizija d5fe05f",
+      "from": "825e4adf06b2574cc601ae7126c2332984b2f48a998de72b65a1d8437b73137e",
+      "to": "a78398fffc028141846382f84830a3a25338d31ac92067953759530b32159bcc"
+    }
+  ]
 }
