@@ -62,6 +62,9 @@ uv run --no-sync python scripts/benchmark.py --images tests/data --variants tiny
     --reference-mm srce=200,figura8=220,ploca=150 --out benchmark_report
 ```
 
+Uputstvo za pokretanje na drugoj mašini (Mac MPS / CUDA, za collaboratora):
+[docs/benchmark/UPUTSTVO-ZA-AGENTA.md](docs/benchmark/UPUTSTVO-ZA-AGENTA.md).
+
 Prvi rezultat (CPU, sintetički mockupi) je u
 [docs/benchmark/2026-11-03-cpu.md](docs/benchmark/2026-11-03-cpu.md):
 `small` je najbolji balans — set_image 2,5 s, predict 0,07 s, **3,5 s end-to-end**,
