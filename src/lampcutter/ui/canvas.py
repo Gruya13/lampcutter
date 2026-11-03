@@ -48,9 +48,11 @@ class Canvas(QGraphicsView):
     polygon_finished = Signal(list)  # list of (x, y) image px
     prompt_cleared = Signal()
     image_loaded = Signal(str, int, int)  # path, width, height
+    brush_stroke_finished = Signal(list, bool, int)  # points, add, radius_px
 
     MODE_PROMPT = "prompt"
     MODE_POLYGON = "polygon"
+    MODE_BRUSH = "brush"
     DRAG_THRESHOLD = 4.0
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -77,6 +79,12 @@ class Canvas(QGraphicsView):
         self._prompt_items: list[QGraphicsItem] = []
         self._box_item: QGraphicsRectItem | None = None
         self._polygon_item: QGraphicsPathItem | None = None
+        self.brush_radius_px = 25
+        self.brush_add = True
+        self._brush_points: list[tuple[float, float]] = []
+        self._brush_active = False
+        self._brush_path: QGraphicsPathItem | None = None
+        self._brush_cursor: QGraphicsEllipseItem | None = None
         self._press_pos: QPointF | None = None
         self._press_image: tuple[float, float] | None = None
         self._dragging_box = False
@@ -218,9 +226,96 @@ class Canvas(QGraphicsView):
 
     # ------------------------------------------------------------ interaction
     def set_mode(self, mode: str) -> None:
-        if mode not in (self.MODE_PROMPT, self.MODE_POLYGON):
+        if mode not in (self.MODE_PROMPT, self.MODE_POLYGON, self.MODE_BRUSH):
             raise ValueError(f"nepoznat režim platna {mode!r}")
         self.mode = mode
+        if mode != self.MODE_BRUSH:
+            self._hide_brush_cursor()
+
+    # ------------------------------------------------------------------ brush
+    def set_brush(self, radius_px: int, add: bool = True) -> None:
+        """Configure the retouch brush (v1.1, specification 12.1)."""
+        if radius_px <= 0:
+            raise ValueError("radius_px mora biti pozitivan")
+        self.brush_radius_px = int(radius_px)
+        self.brush_add = bool(add)
+        self._update_brush_cursor()
+
+    def begin_brush_stroke(self, image_point: tuple[float, float], add: bool = True) -> None:
+        """Start a brush stroke at an image pixel (mouse press or test hook)."""
+        self._brush_active = True
+        self.brush_add = bool(add)
+        self._brush_points = [(float(image_point[0]), float(image_point[1]))]
+        self._update_brush_cursor()
+        self._redraw_brush_preview()
+
+    def extend_brush_stroke(self, image_point: tuple[float, float]) -> None:
+        """Append a point to the active stroke; ignores sub-pixel moves."""
+        if not self._brush_active:
+            raise ValueError("potez četkice nije započet")
+        last = self._brush_points[-1]
+        if abs(image_point[0] - last[0]) < 0.5 and abs(image_point[1] - last[1]) < 0.5:
+            return
+        self._brush_points.append((float(image_point[0]), float(image_point[1])))
+        self._redraw_brush_preview()
+
+    def end_brush_stroke(self) -> tuple[list[tuple[float, float]], bool, int]:
+        """Finish the stroke and emit it (MainWindow applies it to the mask)."""
+        if not self._brush_active:
+            raise ValueError("potez četkice nije započet")
+        points = list(self._brush_points)
+        add = self.brush_add
+        radius = self.brush_radius_px
+        self._brush_active = False
+        self._brush_points = []
+        self._remove_brush_preview()
+        self.brush_stroke_finished.emit(points, add, radius)
+        return points, add, radius
+
+    def _redraw_brush_preview(self) -> None:
+        self._remove_brush_preview()
+        if not self._brush_points:
+            return
+        path = QPainterPath()
+        path.moveTo(*self._brush_points[0])
+        for point in self._brush_points[1:]:
+            path.lineTo(*point)
+        item = QGraphicsPathItem(path)
+        item.setPen(QPen(QColor(255, 220, 60, 230), 2.0, Qt.PenStyle.DashLine))
+        item.setZValue(7)
+        self._scene.addItem(item)
+        self._brush_path = item
+
+    def _remove_brush_preview(self) -> None:
+        if self._brush_path is not None:
+            self._scene.removeItem(self._brush_path)
+            self._brush_path = None
+
+    def _update_brush_cursor(self, scene_point: tuple[float, float] | None = None) -> None:
+        if self.mode != self.MODE_BRUSH:
+            self._hide_brush_cursor()
+            return
+        if self._brush_cursor is None:
+            item = QGraphicsEllipseItem()
+            item.setPen(QPen(QColor(255, 255, 255, 220), 1.0, Qt.PenStyle.DotLine))
+            item.setBrush(QColor(255, 255, 255, 30))
+            item.setZValue(8)
+            self._scene.addItem(item)
+            self._brush_cursor = item
+        if scene_point is not None:
+            radius = float(self.brush_radius_px)
+            self._brush_cursor.setRect(
+                scene_point[0] - radius,
+                scene_point[1] - radius,
+                radius * 2,
+                radius * 2,
+            )
+            self._brush_cursor.setVisible(True)
+
+    def _hide_brush_cursor(self) -> None:
+        if self._brush_cursor is not None:
+            self._scene.removeItem(self._brush_cursor)
+            self._brush_cursor = None
 
     def add_prompt_point(self, label: int, image_point: tuple[float, float]) -> None:
         """Add a prompt point and draw it (used by clicks and by tests)."""
@@ -351,6 +446,16 @@ class Canvas(QGraphicsView):
                 self.finish_polygon()
             event.accept()
             return
+        if self.mode == self.MODE_BRUSH and event.button() in (
+            Qt.MouseButton.LeftButton,
+            Qt.MouseButton.RightButton,
+        ):
+            image_point = self.view_transform.view_to_image(
+                (event.position().x(), event.position().y())
+            )
+            self.begin_brush_stroke(image_point, add=event.button() == Qt.MouseButton.LeftButton)
+            event.accept()
+            return
         if event.button() in (Qt.MouseButton.LeftButton, Qt.MouseButton.RightButton):
             image_point = self.view_transform.view_to_image(
                 (event.position().x(), event.position().y())
@@ -372,6 +477,16 @@ class Canvas(QGraphicsView):
             self._apply_transform()
             event.accept()
             return
+        if self.mode == self.MODE_BRUSH:
+            image_point = self.view_transform.view_to_image(
+                (event.position().x(), event.position().y())
+            )
+            if self._brush_active:
+                self.extend_brush_stroke(image_point)
+            else:
+                self._update_brush_cursor(image_point)
+            event.accept()
+            return
         if (
             self._press_pos is not None
             and event.buttons() & Qt.MouseButton.LeftButton
@@ -386,6 +501,10 @@ class Canvas(QGraphicsView):
         if self._panning and event.button() == Qt.MouseButton.MiddleButton:
             self._panning = False
             self._last_pan_pos = None
+            event.accept()
+            return
+        if self.mode == self.MODE_BRUSH and self._brush_active:
+            self.end_brush_stroke()
             event.accept()
             return
         press_image = self._press_image

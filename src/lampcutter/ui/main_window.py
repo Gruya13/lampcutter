@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import shapely
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QKeySequence
@@ -20,15 +21,16 @@ from PySide6.QtWidgets import (
 )
 
 from lampcutter.config import Config
-from lampcutter.core import compose, geometry, project
+from lampcutter.core import compose, geometry, mask_ops, project
 from lampcutter.core import slots as slots_module
-from lampcutter.core.pipeline import PipelineResult, run_pipeline
+from lampcutter.core.pipeline import PipelineResult, revectorize_mask, run_pipeline
 from lampcutter.models import BaseProfile, DecorElement, LampTemplate, MaterialProfile, PhotoSlot
 from lampcutter.settings import AppSettings, save_bases, save_materials
 from lampcutter.ui.canvas import Canvas
 from lampcutter.ui.dialogs import BaseEditorDialog, MaterialEditorDialog
 from lampcutter.ui.panels import (
     BasePanel,
+    BrushPanel,
     ContourPanel,
     ElementsPanel,
     MaterialPanel,
@@ -57,6 +59,8 @@ class MainWindow(QMainWindow):
         self.template: LampTemplate | None = None
         self.project_path: Path | None = None
         self.template_path: Path | None = None
+        self.brush_mask: np.ndarray | None = None
+        self.brush_history: list[np.ndarray] = []
         self._cancel_requested = False
 
         self.canvas = Canvas()
@@ -65,6 +69,8 @@ class MainWindow(QMainWindow):
         self.base_panel = BasePanel(self.settings.bases)
         self.contour_panel = ContourPanel()
         self.elements_panel = ElementsPanel()
+        self.brush_panel = BrushPanel()
+        self.brush_panel.set_from_config(self.current_config_for_brush())
 
         side = QWidget()
         side_layout = QVBoxLayout(side)
@@ -73,6 +79,7 @@ class MainWindow(QMainWindow):
             self.material_panel,
             self.base_panel,
             self.contour_panel,
+            self.brush_panel,
             self.elements_panel,
         ):
             side_layout.addWidget(panel)
@@ -108,6 +115,7 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Učitaj sliku (Ctrl+O ili prevuci fajl na platno).")
         self.runner = TaskRunner(self)
         self.debouncer = Debouncer(150, self)
+        self.retouch_debouncer = Debouncer(250, self)
         self._connect_signals()
         self._update_clearance()
 
@@ -143,6 +151,11 @@ class MainWindow(QMainWindow):
             mode_menu,
             "Poligon alat",
             lambda: self.canvas.set_mode(Canvas.MODE_POLYGON),
+        )
+        self._add_action(
+            mode_menu,
+            "Četkica (retuš maske)",
+            lambda: self.canvas.set_mode(Canvas.MODE_BRUSH),
         )
 
         element_menu = self.menuBar().addMenu("&Elementi")
@@ -185,11 +198,17 @@ class MainWindow(QMainWindow):
         self.base_panel.edit_requested.connect(self._edit_base)
         self.contour_panel.contour_changed.connect(lambda *_: self._on_settings_changed())
         self.elements_panel.mode_changed.connect(self._on_element_mode)
+        self.canvas.brush_stroke_finished.connect(self._on_brush_stroke)
+        self.brush_panel.brush_changed.connect(self._on_brush_changed)
+        self.brush_panel.undo_requested.connect(self.undo)
         self.cancel_button.clicked.connect(self.cancel)
         self.export_button.clicked.connect(self.export)
         self.save_project_button.clicked.connect(self.save_project)
 
     # ------------------------------------------------------------------ state
+    def current_config_for_brush(self) -> Config:
+        return Config()
+
     def current_config(self) -> Config:
         cfg = Config()
         values = self.contour_panel.values()
@@ -286,6 +305,8 @@ class MainWindow(QMainWindow):
         self.image_path = path
         self.last_result = None
         self.template = None
+        self.brush_mask = None
+        self.brush_history = []
         self.elements_panel.set_elements([], [])
         self.statusBar().showMessage(f"Učitano: {path.name}")
 
@@ -352,7 +373,17 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(stage)
 
     def _on_result(self, result: PipelineResult) -> None:
+        self._apply_result(result, reset_brush_history=True)
+
+    def _on_retouch_result(self, result: PipelineResult) -> None:
+        self._apply_result(result, reset_brush_history=False)
+        self.statusBar().showMessage("Retuš maske primenjen")
+
+    def _apply_result(self, result: PipelineResult, *, reset_brush_history: bool) -> None:
         self.last_result = result
+        self.brush_mask = result.mask_clean.copy() if result.mask_clean is not None else None
+        if reset_brush_history:
+            self.brush_history = []
         self.progress.setValue(100)
         self.cancel_button.setEnabled(False)
         self.canvas.set_mask(result.mask_clean)
@@ -403,6 +434,11 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Otkazano")
 
     def undo(self) -> None:
+        if self.canvas.mode == Canvas.MODE_BRUSH and self.brush_history:
+            self.brush_mask = self.brush_history.pop()
+            self.canvas.set_mask(self.brush_mask)
+            self._revectorize()
+            return
         if self.canvas.undo_last():
             self._on_interaction()
 
@@ -635,6 +671,52 @@ class MainWindow(QMainWindow):
                 self._refresh_elements()
                 self.statusBar().showMessage(f"Element {element_id}: režim {mode}")
                 return
+
+    # ------------------------------------------------------------------ brush
+    def _on_brush_changed(self, radius_px: int, add: bool) -> None:
+        self.canvas.set_brush(radius_px, add)
+
+    def _on_brush_stroke(self, points: list, add: bool, radius_px: int) -> None:
+        """Apply one brush stroke to the mask and re-vectorise in a worker."""
+        if self.brush_mask is None or self.image_path is None:
+            self.statusBar().showMessage("Prvo izvezi geometriju, pa retuširaj masku.")
+            return
+        updated = mask_ops.paint_stroke(self.brush_mask, points, radius_px, add=add)
+        if np.array_equal(updated, self.brush_mask):
+            return
+        self.brush_history.append(self.brush_mask)
+        if len(self.brush_history) > 10:
+            self.brush_history.pop(0)
+        self.brush_mask = updated
+        self.canvas.set_mask(updated)
+        self.retouch_debouncer.schedule(self._revectorize)
+
+    def _revectorize(self) -> None:
+        if self.brush_mask is None or self.image_path is None:
+            return
+        self._cancel_requested = False
+        self.statusBar().showMessage("Retuš…")
+        self.runner.run(
+            self._retouch_job,
+            on_finished=self._on_retouch_result,
+            on_failed=self._on_failed,
+            on_progress=self._on_progress,
+        )
+
+    def _retouch_job(self, progress=None) -> PipelineResult:
+        return revectorize_mask(
+            self.image_path,
+            self.brush_mask,
+            config=self.current_config(),
+            material=self.current_material(),
+            base=self.current_base(),
+            input_kind=self.current_input_kind(),
+            height_mm=self.size_panel.value_mm(),
+            reference=self.size_panel.reference(),
+            out_dir=Path("izlaz") / "gui",
+            progress=progress,
+            cancel=lambda: self._cancel_requested,
+        )
 
     def _show_error(self, message: str) -> None:
         """Report an error through the status bar (no modal dialog in workers/tests)."""

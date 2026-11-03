@@ -19,6 +19,50 @@ def _check_mask(mask: np.ndarray) -> np.ndarray:
     return mask.astype(bool, copy=False)
 
 
+def paint_stroke(
+    mask: np.ndarray,
+    points: list[tuple[float, float]] | np.ndarray,
+    radius_px: float,
+    add: bool = True,
+) -> np.ndarray:
+    """Paint one brush stroke into a mask (v1.1 manual retouch, specification 12.1).
+
+    `points` are image pixels in stroke order; the stroke is a round brush of
+    `radius_px` swept along the polyline. `add=True` paints pixels into the
+    mask, `add=False` erases them. The input mask is not modified.
+    """
+    binary = _check_mask(mask)
+    if radius_px <= 0:
+        raise ValueError("radius_px must be positive")
+    stroke_points = np.asarray(points, dtype=np.float64)
+    if stroke_points.ndim != 2 or stroke_points.shape[1] != 2 or len(stroke_points) == 0:
+        raise ValueError("points must be a non-empty list of (x, y) pairs")
+    canvas = np.zeros(binary.shape, dtype=np.uint8)
+    integer_points = np.round(stroke_points).astype(np.int32).tolist()
+    thickness = max(1, round(radius_px * 2))
+    radius = max(1, round(radius_px))
+    if len(integer_points) == 1:
+        cv2.circle(canvas, tuple(integer_points[0]), radius, 255, -1, cv2.LINE_AA)
+    else:
+        cv2.polylines(
+            canvas,
+            [np.array(integer_points, dtype=np.int32)],
+            False,
+            255,
+            thickness,
+            cv2.LINE_AA,
+        )
+        for endpoint in (integer_points[0], integer_points[-1]):
+            cv2.circle(canvas, tuple(endpoint), radius, 255, -1, cv2.LINE_AA)
+    stroke = canvas > 0
+    result = binary.copy()
+    if add:
+        result |= stroke
+    else:
+        result &= ~stroke
+    return result
+
+
 def components(mask: np.ndarray) -> list[np.ndarray]:
     """Return connected components as boolean masks, largest area first."""
     binary = _check_mask(mask).astype(np.uint8)

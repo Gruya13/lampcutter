@@ -50,6 +50,8 @@ class Config:
     slot_overlap_max: float = 0.1
     slot_min_area_mm2: float = 50.0
     decor_upsample: int = 2
+    # v1.1: manual mask retouch brush (specification, 12.1 and 17).
+    brush_radius_px: int = 25
     potrace_turdsize: int = 20
     potrace_alphamax: float = 1.0
     potrace_opttolerance: float = 0.2
@@ -102,6 +104,8 @@ class Config:
         for inset in self.edge_inset_mm.values():
             if inset < 0:
                 raise ValueError("edge_inset_mm values must be non-negative")
+        if not 1 <= self.brush_radius_px <= 500:
+            raise ValueError("brush_radius_px must be in [1, 500]")
 
     def edge_inset(self, input_kind: InputKind) -> float:
         """Glow compensation for the given input kind (specification, 8.2 step 2)."""

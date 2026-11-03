@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QPushButton,
+    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
@@ -372,6 +373,47 @@ class ElementsPanel(QGroupBox):
         if element is None or element[0] != "decor":
             return
         self.mode_changed.emit(element[1], str(self.mode_combo.currentData()))
+
+
+class BrushPanel(QGroupBox):
+    """Manual mask retouch brush (v1.1, specification 12.1)."""
+
+    brush_changed = Signal(int, bool)  # radius_px, add
+    undo_requested = Signal()
+
+    def __init__(self, radius_px: int = 25, parent: QWidget | None = None) -> None:
+        super().__init__("Četkica (retuš maske)", parent)
+        self.radius_spin = QSpinBox()
+        self.radius_spin.setRange(1, 500)
+        self.radius_spin.setValue(int(radius_px))
+        self.radius_spin.setSuffix(" px")
+        self.mode_combo = QComboBox()
+        self.mode_combo.addItem("Dodaj u masku", True)
+        self.mode_combo.addItem("Ukloni iz maske", False)
+        self.info_label = QLabel("Levi taster = dodaj, desni = ukloni.")
+        self.info_label.setWordWrap(True)
+        self.undo_button = QPushButton("Poništi potez")
+        layout = QVBoxLayout(self)
+        layout.addWidget(QLabel("Veličina četkice:"))
+        layout.addWidget(self.radius_spin)
+        layout.addWidget(self.mode_combo)
+        layout.addWidget(self.info_label)
+        layout.addWidget(self.undo_button)
+        self.radius_spin.valueChanged.connect(lambda _value: self._emit_change())
+        self.mode_combo.currentIndexChanged.connect(lambda _index: self._emit_change())
+        self.undo_button.clicked.connect(self.undo_requested.emit)
+
+    def radius_px(self) -> int:
+        return int(self.radius_spin.value())
+
+    def add_mode(self) -> bool:
+        return bool(self.mode_combo.currentData())
+
+    def set_from_config(self, config) -> None:
+        self.radius_spin.setValue(int(config.brush_radius_px))
+
+    def _emit_change(self) -> None:
+        self.brush_changed.emit(self.radius_px(), self.add_mode())
 
 
 def _spin(

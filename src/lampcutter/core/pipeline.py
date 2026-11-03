@@ -132,117 +132,28 @@ def _base_key(base: BaseProfile | None) -> tuple[Any, ...] | None:
     )
 
 
-def run_pipeline(
-    image_path: Path | str,
+def _finish_from_mask(
+    image: Image.Image,
+    mask_raw: np.ndarray,
     *,
-    prompt: Prompt | None = None,
-    mask_file: Path | str | None = None,
-    polygon_px: list[tuple[int, int]] | None = None,
-    config: Config | None = None,
+    cfg: Config,
     material: MaterialProfile,
-    base: BaseProfile | None = None,
-    input_kind: InputKind = "mockup",
+    base: BaseProfile | None,
+    input_kind: InputKind,
     height_mm: float,
-    reference: str = "height",
-    out_dir: Path | str = "izlaz",
-    debug_dir: Path | str | None = None,
-    models_dir: Path | str = "models",
-    segmenter: Segmenter | None = None,
-    cache: PipelineCache | None = None,
-    progress: ProgressCallback | None = None,
-    cancel: CancelCallback | None = None,
+    reference: str,
+    out_path: Path,
+    collected_warnings: list[str],
+    progress_fn: ProgressCallback,
+    cancel: CancelCallback | None,
+    cache: PipelineCache | None,
+    debug_dir: Path | None,
 ) -> PipelineResult:
-    """Run the full cut pipeline for one image (specification, 7.10).
+    """Stages after the raw mask: cleanup -> scale -> vectorise -> geometry -> SVG.
 
-    Exactly one mask source is required: `prompt` (SAM 2), `mask_file` or
-    `polygon_px` (manual polygon tool). `segmenter` lets the GUI reuse one loaded
-    model; `cache` enables the per-stage cache from specification 4.3.
+    Shared by `run_pipeline` (after segmentation) and `revectorize_mask` (after a
+    manual brush retouch), so both paths produce identical output for equal masks.
     """
-    cfg = config or Config()
-    progress_fn = progress or _noop_progress
-    out_path = Path(out_dir)
-    out_path.mkdir(parents=True, exist_ok=True)
-    collected_warnings: list[str] = []
-
-    _progress(progress_fn, "load", 0.0)
-    _check_cancel(cancel)
-    image = io_utils.load_image(image_path, min_resolution_px=cfg.min_resolution_px)
-    original_size = image.size
-    working_image, factor = io_utils.to_working_size(image, cfg.max_side_px)
-    working_size = working_image.size
-    image_digest = io_utils.file_sha256(image_path)
-
-    sources = sum(source is not None for source in (prompt, mask_file, polygon_px))
-    if sources == 0:
-        raise PipelineError("Potreban je prompt, --mask-file ili ručni poligon.")
-    if sources > 1:
-        raise PipelineError("Daj samo jedan izvor maske: prompt, --mask-file ili poligon.")
-
-    _progress(progress_fn, "segment", 0.15)
-    _check_cancel(cancel)
-
-    segmenter_obj = segmenter
-    multimask = False
-    if prompt is not None:
-        if segmenter_obj is None:
-            segmenter_obj = Segmenter(
-                variant=cfg.sam_variant,
-                device=cfg.device,
-                models_dir=models_dir,
-            )
-        array = io_utils.image_to_array(working_image)
-        _cached(
-            cache,
-            "S1",
-            (image_digest, cfg.sam_variant, cfg.device, id(segmenter_obj)),
-            lambda: segmenter_obj.set_image(array),
-        )
-        multimask = Segmenter.predict_multimask_rule(prompt)
-
-    if mask_file is not None:
-        mask_source_key: tuple[Any, ...] = (
-            "mask_file",
-            io_utils.file_sha256(mask_file),
-            working_size,
-        )
-    elif polygon_px is not None:
-        mask_source_key = ("polygon", tuple(tuple(point) for point in polygon_px), working_size)
-    else:
-        assert prompt is not None
-        mask_source_key = (
-            "prompt",
-            image_digest,
-            prompt.points,
-            prompt.labels,
-            prompt.box,
-            working_size,
-            multimask,
-        )
-
-    refine_key = (input_kind, cfg.refine_edge_photo, cfg.refine_edge_band_px)
-    if cache is not None:
-        mask_source_key = (*mask_source_key, *refine_key)
-
-    def compute_mask_raw() -> np.ndarray:
-        if mask_file is not None:
-            working_mask = mask_from_file(mask_file, target_size=working_size)
-        elif polygon_px is not None:
-            working_mask = mask_ops.polygon_to_mask(polygon_px, working_size[::-1])
-        else:
-            assert prompt is not None and segmenter_obj is not None
-            result = segmenter_obj.predict(prompt, multimask=multimask)
-            working_mask = result.mask
-        raw = io_utils.mask_to_original(working_mask, factor, original_size)
-        if input_kind == "photo" and cfg.refine_edge_photo and raw.any():
-            raw = mask_ops.refine_edge(
-                io_utils.image_to_array(image),
-                raw,
-                cfg.refine_edge_band_px,
-            )
-        return raw
-
-    mask_raw = _cached(cache, "S2", mask_source_key, compute_mask_raw)
-
     component_count = mask_ops.count_components(mask_raw)
     if component_count > 1:
         message = (
@@ -378,4 +289,188 @@ def run_pipeline(
         clearance=clearance,
         debug_paths=debug_paths,
         warnings=collected_warnings,
+    )
+
+
+def run_pipeline(
+    image_path: Path | str,
+    *,
+    prompt: Prompt | None = None,
+    mask_file: Path | str | None = None,
+    polygon_px: list[tuple[int, int]] | None = None,
+    config: Config | None = None,
+    material: MaterialProfile,
+    base: BaseProfile | None = None,
+    input_kind: InputKind = "mockup",
+    height_mm: float,
+    reference: str = "height",
+    out_dir: Path | str = "izlaz",
+    debug_dir: Path | str | None = None,
+    models_dir: Path | str = "models",
+    segmenter: Segmenter | None = None,
+    cache: PipelineCache | None = None,
+    progress: ProgressCallback | None = None,
+    cancel: CancelCallback | None = None,
+) -> PipelineResult:
+    """Run the full cut pipeline for one image (specification, 7.10).
+
+    Exactly one mask source is required: `prompt` (SAM 2), `mask_file` or
+    `polygon_px` (manual polygon tool). `segmenter` lets the GUI reuse one loaded
+    model; `cache` enables the per-stage cache from specification 4.3.
+    """
+    cfg = config or Config()
+    progress_fn = progress or _noop_progress
+    out_path = Path(out_dir)
+    out_path.mkdir(parents=True, exist_ok=True)
+    collected_warnings: list[str] = []
+
+    _progress(progress_fn, "load", 0.0)
+    _check_cancel(cancel)
+    image = io_utils.load_image(image_path, min_resolution_px=cfg.min_resolution_px)
+    original_size = image.size
+    working_image, factor = io_utils.to_working_size(image, cfg.max_side_px)
+    working_size = working_image.size
+    image_digest = io_utils.file_sha256(image_path)
+
+    sources = sum(source is not None for source in (prompt, mask_file, polygon_px))
+    if sources == 0:
+        raise PipelineError("Potreban je prompt, --mask-file ili ručni poligon.")
+    if sources > 1:
+        raise PipelineError("Daj samo jedan izvor maske: prompt, --mask-file ili poligon.")
+
+    _progress(progress_fn, "segment", 0.15)
+    _check_cancel(cancel)
+
+    segmenter_obj = segmenter
+    multimask = False
+    if prompt is not None:
+        if segmenter_obj is None:
+            segmenter_obj = Segmenter(
+                variant=cfg.sam_variant,
+                device=cfg.device,
+                models_dir=models_dir,
+            )
+        array = io_utils.image_to_array(working_image)
+        _cached(
+            cache,
+            "S1",
+            (image_digest, cfg.sam_variant, cfg.device, id(segmenter_obj)),
+            lambda: segmenter_obj.set_image(array),
+        )
+        multimask = Segmenter.predict_multimask_rule(prompt)
+
+    if mask_file is not None:
+        mask_source_key: tuple[Any, ...] = (
+            "mask_file",
+            io_utils.file_sha256(mask_file),
+            working_size,
+        )
+    elif polygon_px is not None:
+        mask_source_key = ("polygon", tuple(tuple(point) for point in polygon_px), working_size)
+    else:
+        assert prompt is not None
+        mask_source_key = (
+            "prompt",
+            image_digest,
+            prompt.points,
+            prompt.labels,
+            prompt.box,
+            working_size,
+            multimask,
+        )
+
+    refine_key = (input_kind, cfg.refine_edge_photo, cfg.refine_edge_band_px)
+    if cache is not None:
+        mask_source_key = (*mask_source_key, *refine_key)
+
+    def compute_mask_raw() -> np.ndarray:
+        if mask_file is not None:
+            working_mask = mask_from_file(mask_file, target_size=working_size)
+        elif polygon_px is not None:
+            working_mask = mask_ops.polygon_to_mask(polygon_px, working_size[::-1])
+        else:
+            assert prompt is not None and segmenter_obj is not None
+            result = segmenter_obj.predict(prompt, multimask=multimask)
+            working_mask = result.mask
+        raw = io_utils.mask_to_original(working_mask, factor, original_size)
+        if input_kind == "photo" and cfg.refine_edge_photo and raw.any():
+            raw = mask_ops.refine_edge(
+                io_utils.image_to_array(image),
+                raw,
+                cfg.refine_edge_band_px,
+            )
+        return raw
+
+    mask_raw = _cached(cache, "S2", mask_source_key, compute_mask_raw)
+
+    return _finish_from_mask(
+        image,
+        mask_raw,
+        cfg=cfg,
+        material=material,
+        base=base,
+        input_kind=input_kind,
+        height_mm=height_mm,
+        reference=reference,
+        out_path=out_path,
+        collected_warnings=collected_warnings,
+        progress_fn=progress_fn,
+        cancel=cancel,
+        cache=cache,
+        debug_dir=Path(debug_dir) if debug_dir is not None else None,
+    )
+
+
+def revectorize_mask(
+    image_path: Path | str,
+    mask: np.ndarray,
+    *,
+    config: Config | None = None,
+    material: MaterialProfile,
+    base: BaseProfile | None = None,
+    input_kind: InputKind = "mockup",
+    height_mm: float,
+    reference: str = "height",
+    out_dir: Path | str = "izlaz",
+    debug_dir: Path | str | None = None,
+    cache: PipelineCache | None = None,
+    progress: ProgressCallback | None = None,
+    cancel: CancelCallback | None = None,
+) -> PipelineResult:
+    """Re-run cleanup/vectorise/geometry/export from an edited mask (v1.1 brush).
+
+    Used by the GUI brush retouch: the mask comes from a previous pipeline run
+    and may have been painted/erased by the user. The image is still required for
+    the debug overlay and for the mask size.
+    """
+    cfg = config or Config()
+    progress_fn = progress or _noop_progress
+    out_path = Path(out_dir)
+    out_path.mkdir(parents=True, exist_ok=True)
+    image = io_utils.load_image(image_path, min_resolution_px=cfg.min_resolution_px)
+    binary = np.asarray(mask, dtype=bool)
+    if binary.ndim != 2:
+        raise PipelineError("Maska mora biti 2-D.")
+    if binary.shape != (image.height, image.width):
+        resized = Image.fromarray(binary.astype(np.uint8) * 255).resize(
+            image.size, Image.Resampling.NEAREST
+        )
+        binary = np.asarray(resized) > 127
+    if not binary.any():
+        raise PipelineError("Maska je prazna.")
+    return _finish_from_mask(
+        image,
+        binary,
+        cfg=cfg,
+        material=material,
+        base=base,
+        input_kind=input_kind,
+        height_mm=height_mm,
+        reference=reference,
+        out_path=out_path,
+        collected_warnings=[],
+        progress_fn=progress_fn,
+        cancel=cancel,
+        cache=cache,
+        debug_dir=Path(debug_dir) if debug_dir is not None else None,
     )
