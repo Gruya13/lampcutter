@@ -270,7 +270,7 @@ def _contour_area(contour) -> float:
     return float(cv2.contourArea(contour))
 
 
-def _mask_to_polygon(mask: np.ndarray) -> Polygon | None:
+def _mask_to_polygon(mask: np.ndarray, mm_per_px: float = 1.0) -> Polygon | None:
     from lampcutter.core.vectorize import contour_to_mm
 
     contours, _ = _contours(mask)
@@ -279,4 +279,4 @@ def _mask_to_polygon(mask: np.ndarray) -> Polygon | None:
     points = [(float(x), float(y)) for x, y in max(contours, key=_contour_area).reshape(-1, 2)]
     if len(points) < 3:
         return None
-    return contour_to_mm(points, 1.0)
+    return contour_to_mm(points, mm_per_px)
