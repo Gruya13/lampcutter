@@ -34,6 +34,24 @@ Format: Keep a Changelog. Faze iz `LAMPCUTTER_SPEC.md` (odeljak 16).
   `scripts/run_cases.py` i API ugovor `docs/api-phase0a.md`.
 - GitHub: privatni repo kao `main`; lokalni repo je staging.
 
+### Dodato — Faza 0b
+
+- `geometry`: jezičak i prorez baze (8.3) — `add_tab`, `bottom_contact`,
+  `slot_clearance`, `effective_slot_length`; `tab_fit`/tab_offset` sa
+  zaobljenim uglovima; zazor se prijavljuje kroz upozorenja; posle kerfa jezičak
+  ima tačno nominalnu širinu.
+- `core/calibrate.py` + `lampcutter calibrate`: kalibracioni SVG bez kerfa,
+  računanje `kerf = nominalno - izmereno` (prosek) i upis u profil materijala.
+- `core/cache.py`: `PipelineCache` sa fazama S1–S6, digestima maski/poligona i
+  brojačima za test invalidacije.
+- `mask_ops.refine_edge`: GrabCut u uskoj traci oko ivice (stvarne fotografije).
+- `pipeline`: `base` (jezičak), `segmenter` dependency injection, keš po fazama,
+  `refine_edge` za `input_kind="photo"`, `clearance` u rezultatu.
+- `cli`: `calibrate` komanda, `benchmark` delegira na `scripts/benchmark.py`,
+  `run --base` stvarno dodaje jezičak.
+- Zaključan test set Faze 0b (37 testova, autor agy) i relock Faze 0a
+  (okruženjski nezavisna ispravka); ukupno 75 testova prolazi.
+
 ### Test set Faze 0a (autor: agy)
 
 - Nezavisan test set od 38 testova (mask_ops, scale, geometry kerf, vectorize,

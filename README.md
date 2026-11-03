@@ -10,10 +10,17 @@ Specifikacija je jedini izvor istine: [LAMPCUTTER_SPEC.md](LAMPCUTTER_SPEC.md).
 
 ## Status
 
-**Faza 0a (u toku):** geometrijski lanac radi end-to-end — učitavanje slike,
+**Faza 0a (završena):** geometrijski lanac radi end-to-end — učitavanje slike,
 maska (`--mask-file`, SAM 2 tačka/okvir ili ručni poligon), čišćenje maske,
 skala u mm, vektorizacija, edge inset, kerf kompenzacija, SVG za LightBurn i
-debug izlazi. Bez jezička, profila baze, keša i benchmarka (Faza 0b).
+debug izlazi.
+
+**Faza 0b (završena):** jezičak i prorez baze (spec 8.3) sa zazorom i
+upozorenjima, kalibracija kerfa (`lampcutter calibrate`), `PipelineCache` (faze
+S1–S6), `refine_edge` za stvarne fotografije i benchmark (CPU + CUDA; Mac MPS se
+čeka). Zaključani test setovi: Faza 0a 38 testova, Faza 0b 37 testova — svi
+prolaze. Fizička provera (LightBurn uvoz, probni rez, naleganje jezička) je na
+korisniku kad bude imao vremena.
 
 **Faza E (odložena):** čeka 2–3 stvarne fotografije upaljene lampe i 2–3 mockupa
 sa poznatim visinama (specifikacija, 13.3 i 17). Do tada se ne piše
@@ -28,7 +35,8 @@ ide pre Faze E dok ne stignu fotografije.
 uv sync --group dev        # razvojno okruženje
 uv run ruff check .        # lint
 ./scripts/ci.sh            # lint + zaključani test set (kao na CI-ju)
-uv run python scripts/run_cases.py tests/cases/phase0a.json   # test set
+uv run python scripts/run_cases.py tests/cases/phase0a.json   # test set 0a
+uv run python scripts/run_cases.py tests/cases/phase0b.json   # test set 0b
 ```
 
 Ciljna Python verzija je 3.12 (zbog PyTorch/SAM 2).
@@ -47,7 +55,7 @@ uv run lampcutter run slika.jpg --point 820,540 --point 300,900:neg \
 
 Izlaz: `lamp_cut.svg` (mm, sloj `cut-outer` u `#FF0000`). Debug:
 `mask_raw.png`, `mask_clean.png`, `overlay.png`, `contour_preview.svg`.
-`--base` se prihvata i ignoriše do Faze 0b (jezičak).
+`--base` dodaje jezičak i ispisuje zazor prema profilu baze.
 
 ## Benchmark
 
