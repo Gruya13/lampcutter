@@ -44,9 +44,7 @@ def ensure_valid(polygon: shapely.Geometry) -> Polygon:
 
 
 def ensure_single_polygon(polygon: shapely.Geometry) -> Polygon:
-    """Return the largest polygon; raise if the geometry contains several parts."""
-    if isinstance(polygon, MultiPolygon) and len(polygon.geoms) > 1:
-        raise GeometryError("kontura mora biti jedan poligon (specifikacija, 8.4)")
+    """Reduce a geometry to one valid polygon, keeping the largest part (spec, 7.6)."""
     return ensure_valid(polygon)
 
 
@@ -88,17 +86,23 @@ def clean_ring(
         return list(points)
     cleaned: list[tuple[float, float]] = []
     for point in points:
-        if not cleaned or (
-            (cleaned[-1][0] - point[0]) ** 2 + (cleaned[-1][1] - point[1]) ** 2
-        ) >= min_edge_mm**2:
+        if (
+            not cleaned
+            or ((cleaned[-1][0] - point[0]) ** 2 + (cleaned[-1][1] - point[1]) ** 2)
+            >= min_edge_mm**2
+        ):
             cleaned.append(point)
-    while len(cleaned) > 3 and (
-        (cleaned[0][0] - cleaned[-1][0]) ** 2 + (cleaned[0][1] - cleaned[-1][1]) ** 2
-    ) < min_edge_mm**2:
+    while (
+        len(cleaned) > 3
+        and ((cleaned[0][0] - cleaned[-1][0]) ** 2 + (cleaned[0][1] - cleaned[-1][1]) ** 2)
+        < min_edge_mm**2
+    ):
         cleaned.pop()
-    while len(cleaned) > 3 and (
-        (cleaned[0][0] - cleaned[1][0]) ** 2 + (cleaned[0][1] - cleaned[1][1]) ** 2
-    ) < min_edge_mm**2:
+    while (
+        len(cleaned) > 3
+        and ((cleaned[0][0] - cleaned[1][0]) ** 2 + (cleaned[0][1] - cleaned[1][1]) ** 2)
+        < min_edge_mm**2
+    ):
         cleaned.pop(0)
     return cleaned
 

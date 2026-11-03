@@ -161,8 +161,7 @@ def run_pipeline(
     component_count = mask_ops.count_components(mask_raw)
     if component_count > 1:
         message = (
-            f"Maska ima {component_count} komponente; koristi se najveća "
-            "(specifikacija, 8.4)."
+            f"Maska ima {component_count} komponente; koristi se najveća (specifikacija, 8.4)."
         )
         warnings.warn(message, RuntimeWarning, stacklevel=2)
         collected_warnings.append(message)

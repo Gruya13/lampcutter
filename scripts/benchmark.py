@@ -130,9 +130,9 @@ def edge_deviation_mm(
     forward = distances(edge_mask, edge_ref)
     backward = distances(edge_ref, edge_mask)
     mean_mm = (float(forward.mean()) + float(backward.mean())) / 2.0 * mm_per_px
-    hausdorff95_mm = max(
-        float(np.percentile(forward, 95)), float(np.percentile(backward, 95))
-    ) * mm_per_px
+    hausdorff95_mm = (
+        max(float(np.percentile(forward, 95)), float(np.percentile(backward, 95))) * mm_per_px
+    )
     return {"mean_edge_deviation_mm": mean_mm, "hausdorff95_mm": hausdorff95_mm}
 
 
@@ -301,10 +301,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--device", choices=["auto", "cuda", "mps", "cpu"], default="auto")
     parser.add_argument("--models-dir", type=Path, default=Path("models"))
     parser.add_argument("--max-side", type=int, default=2048)
-    parser.add_argument("--repeat", type=int, default=3,
-                        help="broj predict poziva po slici (podrazumevano 3)")
-    parser.add_argument("--reference-mm", default="",
-                        help="visine za referentne maske, npr. slika1=250,slika2=180")
+    parser.add_argument(
+        "--repeat", type=int, default=3, help="broj predict poziva po slici (podrazumevano 3)"
+    )
+    parser.add_argument(
+        "--reference-mm", default="", help="visine za referentne maske, npr. slika1=250,slika2=180"
+    )
     args = parser.parse_args(argv)
 
     repeat = max(1, args.repeat)

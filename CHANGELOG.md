@@ -33,3 +33,11 @@ Format: Keep a Changelog. Faze iz `LAMPCUTTER_SPEC.md` (odeljak 16).
 - Test-lock infrastruktura: `agent-probe/test-lock.mjs`, `.wiki` dokazni kanal,
   `scripts/run_cases.py` i API ugovor `docs/api-phase0a.md`.
 - GitHub: privatni repo kao `main`; lokalni repo je staging.
+
+### Test set Faze 0a (autor: agy)
+
+- Nezavisan test set od 38 testova (mask_ops, scale, geometry kerf, vectorize,
+  svg_writer, io_utils, device, config/models, pipeline end-to-end), upisan u
+  wiki i zaključan kroz `agent-probe/test-lock.mjs` (38/38 prolazi).
+- Posle prvog izvršavanja popravljena 4 implementaciona detalja gde je API
+  ugovor bio nedorečen i 3 testa (autor, kroz `--relock` sa trajnim razlogom).

@@ -135,7 +135,9 @@ def empty_cache(device: str) -> None:
 
 
 def is_out_of_memory(error: BaseException) -> bool:
-    """True for torch out-of-memory errors, including the MPS variant."""
+    """True for memory-exhaustion errors (torch CUDA/MPS OOM or plain MemoryError)."""
+    if isinstance(error, MemoryError):
+        return True
     if not torch_available():
         return False
     import torch
@@ -151,12 +153,13 @@ def load_with_fallback[T](
     loader: Callable[[str, str], T],
     variants: Sequence[str],
     device: str,
-    on_fallback: Callable[[str, str, BaseException], None] | None = None,
+    on_fallback: Callable[[str, str], None] | None = None,
 ) -> tuple[T, str, str]:
     """Load a model, stepping down through variants on OOM and finally to CPU.
 
-    `loader(variant, device)` returns the loaded model. Returns
-    `(model, variant, device)`.
+    `loader(variant, device)` returns the loaded model. `on_fallback` is called
+    as `on_fallback(from_variant, to_variant_or_device)` for every step down.
+    Returns `(model, variant, device)`.
     """
     chain = list(variants)
     if not chain:
@@ -169,7 +172,10 @@ def load_with_fallback[T](
                 raise
             empty_cache(device)
             if on_fallback is not None:
-                on_fallback(variant, device, error)
+                if index + 1 < len(chain):
+                    on_fallback(variant, chain[index + 1])
+                elif device != "cpu":
+                    on_fallback(variant, "cpu")
             if index == len(chain) - 1 and device != "cpu":
                 break
     if device != "cpu":

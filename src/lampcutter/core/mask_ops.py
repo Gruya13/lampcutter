@@ -63,9 +63,7 @@ def morph_close(mask: np.ndarray, radius_px: int) -> np.ndarray:
     binary = _check_mask(mask).astype(np.uint8)
     if radius_px == 0:
         return binary.astype(bool)
-    kernel = cv2.getStructuringElement(
-        cv2.MORPH_ELLIPSE, (2 * radius_px + 1, 2 * radius_px + 1)
-    )
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * radius_px + 1, 2 * radius_px + 1))
     closed = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
     return closed.astype(bool)
 

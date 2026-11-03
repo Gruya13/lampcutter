@@ -149,7 +149,9 @@ class Segmenter:
         """Run one prediction (specification, 7.3 rules for multimask output)."""
         if prompt.is_empty:
             raise SegmentationError("prompt je prazan: daj tačke, okvir ili --mask-file")
-        if self._predictor is None or not self._image_set:
+        if self._predictor is None:
+            self.load()  # raises ModelUnavailableError when SAM 2 is not installed
+        if not self._image_set:
             raise SegmentationError("set_image mora biti pozvan pre predict")
         predictor = self._predictor
         point_coords = np.asarray(prompt.points, dtype=np.float32) if prompt.points else None

@@ -26,9 +26,9 @@ ide pre Faze E dok ne stignu fotografije.
 
 ```bash
 uv sync --group dev        # razvojno okruženje
-uv run pytest              # testovi
 uv run ruff check .        # lint
-./scripts/ci.sh            # lint + testovi (kao na CI-ju)
+./scripts/ci.sh            # lint + zaključani test set (kao na CI-ju)
+uv run python scripts/run_cases.py tests/cases/phase0a.json   # test set
 ```
 
 Ciljna Python verzija je 3.12 (zbog PyTorch/SAM 2).

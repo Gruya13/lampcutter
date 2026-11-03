@@ -81,23 +81,46 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="X,Y[:neg]",
         help="SAM 2 tačka; :neg označava negativnu tačku (ponavlja se)",
     )
-    run_parser.add_argument("--box", type=parse_box, default=None, metavar="X0,Y0,X1,Y1",
-                            help="SAM 2 okvir")
-    run_parser.add_argument("--mask-file", type=Path, default=None,
-                            help="gotova binarna maska (PNG) umesto SAM 2")
-    run_parser.add_argument("--height-mm", type=float, required=True,
-                            help="stvarna visina izrezanog dela u mm (bez jezička)")
-    run_parser.add_argument("--reference", choices=["height", "width"], default="height",
-                            help="na koju dimenziju se odnosi --height-mm (podrazumevano height)")
+    run_parser.add_argument(
+        "--box", type=parse_box, default=None, metavar="X0,Y0,X1,Y1", help="SAM 2 okvir"
+    )
+    run_parser.add_argument(
+        "--mask-file", type=Path, default=None, help="gotova binarna maska (PNG) umesto SAM 2"
+    )
+    run_parser.add_argument(
+        "--height-mm",
+        type=float,
+        required=True,
+        help="stvarna visina izrezanog dela u mm (bez jezička)",
+    )
+    run_parser.add_argument(
+        "--reference",
+        choices=["height", "width"],
+        default="height",
+        help="na koju dimenziju se odnosi --height-mm (podrazumevano height)",
+    )
     run_parser.add_argument("--material", default="acrylic-3", help="id profila materijala")
-    run_parser.add_argument("--base", default=None,
-                            help="id profila baze (jezičak je Faza 0b, ovde se ignoriše)")
-    run_parser.add_argument("--input-kind", choices=["mockup", "photo"], default="mockup",
-                            help="mockup ili stvarna fotografija")
-    run_parser.add_argument("--kerf-mode", choices=["app", "lightburn"], default=None,
-                            help="ko radi kerf kompenzaciju (podrazumevano iz config-a)")
-    run_parser.add_argument("--device", choices=["auto", "cuda", "mps", "cpu"], default=None,
-                            help="uređaj za SAM 2 (podrazumevano auto)")
+    run_parser.add_argument(
+        "--base", default=None, help="id profila baze (jezičak je Faza 0b, ovde se ignoriše)"
+    )
+    run_parser.add_argument(
+        "--input-kind",
+        choices=["mockup", "photo"],
+        default="mockup",
+        help="mockup ili stvarna fotografija",
+    )
+    run_parser.add_argument(
+        "--kerf-mode",
+        choices=["app", "lightburn"],
+        default=None,
+        help="ko radi kerf kompenzaciju (podrazumevano iz config-a)",
+    )
+    run_parser.add_argument(
+        "--device",
+        choices=["auto", "cuda", "mps", "cpu"],
+        default=None,
+        help="uređaj za SAM 2 (podrazumevano auto)",
+    )
     run_parser.add_argument(
         "--sam-variant",
         choices=["auto", "tiny", "small", "base_plus", "large"],
@@ -106,8 +129,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run_parser.add_argument("--config", type=Path, default=None, help="opcioni config.toml")
     run_parser.add_argument("--out", type=Path, default=Path("izlaz"), help="izlazni direktorijum")
-    run_parser.add_argument("--debug-dir", type=Path, default=None,
-                            help="snimi mask_raw/mask_clean/overlay/contour_preview")
+    run_parser.add_argument(
+        "--debug-dir",
+        type=Path,
+        default=None,
+        help="snimi mask_raw/mask_clean/overlay/contour_preview",
+    )
 
     calibrate_parser = subparsers.add_parser("calibrate", help="kalibracioni SVG (Faza 0b)")
     calibrate_parser.add_argument("--sizes", default="20,30,40")
