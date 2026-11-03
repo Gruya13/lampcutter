@@ -1,13 +1,21 @@
 {
   "version": 1,
   "casesFile": "phase4.json",
-  "casesSha256": "ff1c50e1f629c723475c9401134a428e117df87266eb8dc7cee2a9d2344efc7c",
+  "casesSha256": "a6f779391aed5a92d5aa8abbe8c0153dae1688a43698cd7402106ba9b6b6e839",
   "cases": 30,
   "entry": "test_phase4_spec.py",
   "gitRel": "tests/cases/phase4.json",
   "gitState": "clean",
-  "gitRevision": "69de38a6ef7ff114d42aaec7d18facb5ed8b560d",
+  "gitRevision": "b876257be4ab8c88162eb6598f3910b60b9b9455",
   "lockedAt": "2026-11-03T14:03:26.290Z",
   "lockedBy": "agy",
-  "relocks": []
+  "relocks": [
+    {
+      "at": "2026-11-03T15:12:06.285Z",
+      "by": "agy",
+      "reason": "verzija podignuta na 0.5.0; testovi sada proveravaju uskladjenost umesto hardkodovane 0.4.0; revizija agy",
+      "from": "ff1c50e1f629c723475c9401134a428e117df87266eb8dc7cee2a9d2344efc7c",
+      "to": "a6f779391aed5a92d5aa8abbe8c0153dae1688a43698cd7402106ba9b6b6e839"
+    }
+  ]
 }
